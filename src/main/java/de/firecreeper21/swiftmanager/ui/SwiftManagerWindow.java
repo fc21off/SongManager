@@ -9,7 +9,6 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
-import java.util.Collections;
 import java.util.List;
 
 public class SwiftManagerWindow extends JFrame{
