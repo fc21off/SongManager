@@ -30,7 +30,7 @@ public class Song {
 
     @Override
     public String toString() {
-        return "Song: " + title + " (Album: " + album + ", ID: " + id + ", Duration (in Seconds): " + durationInSeconds + ")";
+        return toDisplayString();
     }
 
     public String toDisplayString() {

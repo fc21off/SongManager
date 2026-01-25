@@ -2,16 +2,22 @@ package de.firecreeper21.swiftmanager.ui;
 
 import de.firecreeper21.swiftmanager.model.Song;
 import de.firecreeper21.swiftmanager.service.DiscographyService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.util.Collections;
+import java.util.List;
 
 public class SwiftManagerWindow extends JFrame{
 
     private final DiscographyService service;
-    private final DefaultListModel<String> listModel;
+    private final DefaultListModel<Song> listModel;
+
+    private static final Logger logger = LogManager.getLogger(SwiftManagerWindow.class);
 
     public SwiftManagerWindow(DiscographyService service) {
         this.service = service;
@@ -45,7 +51,7 @@ public class SwiftManagerWindow extends JFrame{
             }
         });
 
-        JList<String> songList = new JList<>(listModel);
+        JList<Song> songList = new JList<>(listModel);
         songList.setBackground(new Color(30, 30, 30));
         songList.setForeground(Color.WHITE);
         songList.setSelectionBackground(new Color(30, 215, 96));
@@ -57,6 +63,32 @@ public class SwiftManagerWindow extends JFrame{
         JTextField durationField = new JTextField();
         JButton addButton = new JButton("Add Song");
 
+        JButton deleteButton = new JButton("Delete selected Song");
+        deleteButton.setBackground(new Color(200, 50, 50)); // Dunkelrot
+        deleteButton.setForeground(Color.WHITE);
+        deleteButton.setFocusPainted(false);
+
+        JButton sortByAlbumButton = new JButton("Sort by Album");
+        sortByAlbumButton.setBackground(new Color(52, 155, 235));
+        sortByAlbumButton.setForeground(Color.BLACK);
+        sortByAlbumButton.setFocusPainted(false);
+
+        JButton sortByDurationButton = new JButton("Sort by Duration");
+        sortByDurationButton.setBackground(new Color(255, 207, 36));
+        sortByDurationButton.setForeground(Color.BLACK);
+        sortByDurationButton.setFocusPainted(false);
+
+        JPanel southContainer = new JPanel();
+        southContainer.setLayout(new BoxLayout(southContainer, BoxLayout.Y_AXIS));
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonPanel.add(sortByAlbumButton);
+        buttonPanel.add(sortByDurationButton);
+        buttonPanel.add(deleteButton);
+
+        southContainer.add(buttonPanel);
+        southContainer.add(inputPanel);
+
         inputPanel.add(new JLabel(" Enter Title: "));
         inputPanel.add(titleField);
         inputPanel.add(new JLabel(" Enter Album: "));
@@ -66,7 +98,7 @@ public class SwiftManagerWindow extends JFrame{
         inputPanel.add(new JLabel(""));
         inputPanel.add(addButton);
 
-        add(inputPanel, BorderLayout.SOUTH);
+        add(southContainer, BorderLayout.SOUTH);
 
         addButton.addActionListener(e -> {
 
@@ -90,6 +122,36 @@ public class SwiftManagerWindow extends JFrame{
 
         });
 
+        deleteButton.addActionListener(e -> {
+
+            Song selectedSong = songList.getSelectedValue();
+
+            if(selectedSong != null) {
+                int confirm = JOptionPane.showConfirmDialog(this, "Delete '" + selectedSong.getTitle() + "'?", "Confirm", JOptionPane.YES_NO_OPTION);
+
+                if(confirm == JOptionPane.YES_OPTION) {
+                    service.deleteSong(selectedSong.getId());
+                    updateList("");
+                    logger.info("UI requested deletion of song!");
+                }
+
+            } else {
+                JOptionPane.showMessageDialog(this, "Select a song first!");
+            }
+
+        });
+
+        sortByAlbumButton.addActionListener(e -> {
+            updateListSortedByAlbum();
+        });
+
+        sortByDurationButton.addActionListener(e -> {
+            updateListSortedByDuration();
+        });
+
+
+        updateList("");
+
         setVisible(true);
 
     }
@@ -102,9 +164,31 @@ public class SwiftManagerWindow extends JFrame{
                     s.getTitle().toLowerCase().contains(query.toLowerCase()) ||
                     s.getAlbum().toLowerCase().contains(query.toLowerCase())) {
 
-                listModel.addElement(s.toDisplayString());
+                listModel.addElement(s);
             }
         }
+    }
+
+    private void updateListSortedByAlbum(){
+        listModel.clear();
+
+        List<Song> sortedList = service.getAllSortedByAlbum();
+
+        for(Song s : sortedList) {
+            listModel.addElement(s);
+        }
+
+    }
+
+    private void updateListSortedByDuration() {
+        listModel.clear();
+
+        List<Song> sortedList = service.getAllSortedByDuration();
+
+        for(Song s : sortedList) {
+            listModel.addElement(s);
+        }
+
     }
 
 }

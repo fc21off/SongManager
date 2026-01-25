@@ -5,6 +5,7 @@ import de.firecreeper21.swiftmanager.repository.SongRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -47,6 +48,40 @@ public class DiscographyService {
         repository.save(song);
 
         logger.info("Song {} added successfully!", song.getTitle());
+    }
+
+    public String getSongTitleById(String id) {
+        return repository.findAll().stream()
+                .filter(s -> s.getId().equals(id))
+                .map(Song::getTitle)
+                .findFirst()
+                .orElse("Unknown Song");
+    }
+
+    public void deleteSong(String id) {
+
+        boolean exists = repository.findAll().stream()
+                        .anyMatch(song -> song.getId().equals(id));
+
+        if(!exists) return;
+        logger.info("Song {} was deleted!", getSongTitleById(id));
+        repository.deleteByID(id);
+
+    }
+
+    public List<Song> getAllSortedByAlbum() {
+        return repository.findAll().stream()
+                .sorted(Comparator.comparing(Song::getAlbum, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(Song::getTitle, String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.toList());
+    }
+
+    public List<Song> getAllSortedByDuration() {
+
+        return repository.findAll().stream()
+                .sorted(Comparator.comparing(Song::getDurationInSeconds))
+                .collect(Collectors.toList());
+
     }
 
 }
