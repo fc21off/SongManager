@@ -32,4 +32,21 @@ public class Song {
     public String toString() {
         return "Song: " + title + " (Album: " + album + ", ID: " + id + ", Duration (in Seconds): " + durationInSeconds + ")";
     }
+
+    public String toDisplayString() {
+        // Wir nutzen HTML mit einer Tabelle, die 100% Breite hat
+        return "<html><table width='470'>" +
+                "<tr>" +
+                "<td align='left'>" + title + " <font color='gray'>" + album + "</font></td>" +
+                "<td align='right'><b>" + formatTime(durationInSeconds) + "</b></td>" +
+                "</tr>" +
+                "</table></html>";
+    }
+
+    private String formatTime(int duration){
+        int minutes = duration / 60;
+        int seconds = duration % 60;
+
+        return String.format("%d:%02d", minutes, seconds);
+    }
 }
