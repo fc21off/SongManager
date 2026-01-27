@@ -65,7 +65,6 @@ public class SQLiteSongRepository implements SongRepository{
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                // Hier nutzen wir den neuen Konstruktor aus der Song-Klasse!
                 Song song = new Song(
                         rs.getString("id"),
                         rs.getString("title"),
@@ -91,7 +90,6 @@ public class SQLiteSongRepository implements SongRepository{
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                // Falls ein Song gefunden wurde, bauen wir ihn zusammen
                 return new Song(
                         rs.getString("id"),
                         rs.getString("title"),

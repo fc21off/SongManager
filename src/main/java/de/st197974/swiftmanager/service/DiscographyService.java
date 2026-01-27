@@ -19,7 +19,6 @@ public class DiscographyService {
         this.repository = repository;
     }
 
-    //returns all songs from an album
     public List<Song> getSongsByAlbum(String albumName) {
         return repository.findAll().stream()
                 .filter(song -> song.getAlbum().equalsIgnoreCase(albumName))
@@ -30,7 +29,6 @@ public class DiscographyService {
         return repository.findAll();
     }
 
-    //calculates duration of all songs in an album
     public int getTotalDurationOfAlbum(String albumName){
         return repository.findAll().stream()
                 .filter(song -> song.getAlbum().equalsIgnoreCase(albumName))
@@ -38,7 +36,6 @@ public class DiscographyService {
                 .sum();
     }
 
-    //adds songs with a correct title
     public void addSongSafely(Song song){
         if(song.getTitle() == null || song.getTitle().isEmpty()) {
             logger.warn("Attempted to add song without title!");

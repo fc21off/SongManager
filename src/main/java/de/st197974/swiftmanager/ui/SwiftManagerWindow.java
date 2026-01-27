@@ -34,7 +34,7 @@ public class SwiftManagerWindow extends JFrame{
         JTextField searchField = new JTextField();
         searchPanel.add(new JLabel(" Search: "), BorderLayout.WEST);
         searchPanel.add(searchField, BorderLayout.CENTER);
-        add(searchPanel, BorderLayout.NORTH); // Ab in den Norden damit!
+        add(searchPanel, BorderLayout.NORTH);
 
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
@@ -48,7 +48,7 @@ public class SwiftManagerWindow extends JFrame{
 
             private void filter() {
                 String query = searchField.getText();
-                updateList(query); // Wir geben den Suchbegriff an updateList weiter
+                updateList(query);
             }
         });
 
@@ -65,7 +65,7 @@ public class SwiftManagerWindow extends JFrame{
         JButton addButton = new JButton("Add Song");
 
         JButton deleteButton = new JButton("DEL");
-        deleteButton.setBackground(new Color(200, 50, 50)); // Dunkelrot
+        deleteButton.setBackground(new Color(200, 50, 50));
         deleteButton.setForeground(Color.WHITE);
         deleteButton.setFocusPainted(false);
 
@@ -224,7 +224,6 @@ public class SwiftManagerWindow extends JFrame{
     private void updateList(String query) {
         listModel.clear();
         for (Song s : service.getAll()) {
-            // Wir prüfen, ob der Titel oder das Album den Suchbegriff enthält (ignorieren Groß/Kleinschreibung)
             if (query.isEmpty() ||
                     s.getTitle().toLowerCase().contains(query.toLowerCase()) ||
                     s.getAlbum().toLowerCase().contains(query.toLowerCase())) {

@@ -9,12 +9,10 @@ public class Song {
     private String album;
     private int durationInSeconds;
 
-    // Konstruktor 1: Für neue Songs (ID wird generiert)
     public Song(String title, String album, int durationInSeconds) {
         this(UUID.randomUUID().toString(), title, album, durationInSeconds);
     }
 
-    // Konstruktor 2: Falls man die ID schon hat (z.B. aus DB)
     public Song(String id, String title, String album, int durationInSeconds) {
         this.id = id;
         this.title = title;
@@ -22,7 +20,6 @@ public class Song {
         this.durationInSeconds = durationInSeconds;
     }
 
-    // Getter
     public String getId() { return id; }
     public String getTitle() { return title; }
     public String getAlbum() { return album; }
@@ -34,7 +31,6 @@ public class Song {
     }
 
     public String toDisplayString() {
-        // Wir nutzen HTML mit einer Tabelle, die 100% Breite hat
         return "<html><table width='460'>" +
                 "<tr>" +
                 "<td align='left'>" + title + " <font color='gray'>" + album + "</font></td>" +
