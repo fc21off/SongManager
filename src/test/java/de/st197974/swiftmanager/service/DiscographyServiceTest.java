@@ -1,8 +1,8 @@
-package de.firecreeper21.swiftmanager.service;
+package de.st197974.swiftmanager.service;
 
-import de.firecreeper21.swiftmanager.model.Song;
-import de.firecreeper21.swiftmanager.repository.InMemorySongRepository;
-import de.firecreeper21.swiftmanager.repository.SongRepository;
+import de.st197974.swiftmanager.model.Song;
+import de.st197974.swiftmanager.repository.InMemorySongRepository;
+import de.st197974.swiftmanager.repository.SongRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

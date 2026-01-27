@@ -1,4 +1,4 @@
-package de.firecreeper21.swiftmanager.model;
+package de.st197974.swiftmanager.model;
 
 import java.util.UUID;
 
@@ -35,7 +35,7 @@ public class Song {
 
     public String toDisplayString() {
         // Wir nutzen HTML mit einer Tabelle, die 100% Breite hat
-        return "<html><table width='470'>" +
+        return "<html><table width='460'>" +
                 "<tr>" +
                 "<td align='left'>" + title + " <font color='gray'>" + album + "</font></td>" +
                 "<td align='right'><b>" + formatTime(durationInSeconds) + "</b></td>" +

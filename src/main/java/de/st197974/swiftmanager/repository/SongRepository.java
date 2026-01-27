@@ -1,6 +1,6 @@
-package de.firecreeper21.swiftmanager.repository;
+package de.st197974.swiftmanager.repository;
 
-import de.firecreeper21.swiftmanager.model.Song;
+import de.st197974.swiftmanager.model.Song;
 import java.util.List;
 
 public interface SongRepository {

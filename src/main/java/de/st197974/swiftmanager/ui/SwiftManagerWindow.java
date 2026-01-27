@@ -1,7 +1,7 @@
-package de.firecreeper21.swiftmanager.ui;
+package de.st197974.swiftmanager.ui;
 
-import de.firecreeper21.swiftmanager.model.Song;
-import de.firecreeper21.swiftmanager.service.DiscographyService;
+import de.st197974.swiftmanager.model.Song;
+import de.st197974.swiftmanager.service.DiscographyService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -15,6 +15,7 @@ public class SwiftManagerWindow extends JFrame{
 
     private final DiscographyService service;
     private final DefaultListModel<Song> listModel;
+    private final JLabel statusBar;
 
     private static final Logger logger = LogManager.getLogger(SwiftManagerWindow.class);
 
@@ -23,10 +24,11 @@ public class SwiftManagerWindow extends JFrame{
         this.listModel = new DefaultListModel<>();
 
         setTitle("SwiftManager 1.0");
-        setSize(500, 400);
+        setSize(500, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
         setBackground(new Color(30, 30, 30));
+        setResizable(false);
 
         JPanel searchPanel = new JPanel(new BorderLayout());
         JTextField searchField = new JTextField();
@@ -62,29 +64,40 @@ public class SwiftManagerWindow extends JFrame{
         JTextField durationField = new JTextField();
         JButton addButton = new JButton("Add Song");
 
-        JButton deleteButton = new JButton("Delete selected Song");
+        JButton deleteButton = new JButton("DEL");
         deleteButton.setBackground(new Color(200, 50, 50)); // Dunkelrot
         deleteButton.setForeground(Color.WHITE);
         deleteButton.setFocusPainted(false);
 
-        JButton sortByAlbumButton = new JButton("Sort by Album");
+        JButton sortByAlbumButton = new JButton("SORT (ALB)");
         sortByAlbumButton.setBackground(new Color(52, 155, 235));
         sortByAlbumButton.setForeground(Color.BLACK);
         sortByAlbumButton.setFocusPainted(false);
 
-        JButton sortByDurationButton = new JButton("Sort by Duration");
+        JButton sortByDurationButton = new JButton("Sort (DUR)");
         sortByDurationButton.setBackground(new Color(255, 207, 36));
         sortByDurationButton.setForeground(Color.BLACK);
         sortByDurationButton.setFocusPainted(false);
 
+        JButton getSongInfoButton = new JButton("SONG INFO");
+        getSongInfoButton.setBackground(new Color(30, 215, 96));
+        getSongInfoButton.setForeground(Color.BLACK);
+        getSongInfoButton.setFocusPainted(false);
+
+        statusBar = new JLabel();
+        statusBar.setForeground(Color.GRAY);
+        statusBar.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
         JPanel southContainer = new JPanel();
         southContainer.setLayout(new BoxLayout(southContainer, BoxLayout.Y_AXIS));
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         buttonPanel.add(sortByAlbumButton);
         buttonPanel.add(sortByDurationButton);
+        buttonPanel.add(getSongInfoButton);
         buttonPanel.add(deleteButton);
 
+        southContainer.add(statusBar);
         southContainer.add(buttonPanel);
         southContainer.add(inputPanel);
 
@@ -140,6 +153,58 @@ public class SwiftManagerWindow extends JFrame{
 
         });
 
+        getSongInfoButton.addActionListener(e -> {
+
+            Song selectedSong = songList.getSelectedValue();
+
+            if(selectedSong != null) {
+
+                int totalSeconds = selectedSong.getDurationInSeconds();
+
+                int hours = totalSeconds / 3600;
+                int minutes = (totalSeconds % 3600) / 60;
+                int seconds = totalSeconds % 60;
+
+                String timeStr;
+                if(hours > 0) {
+                    timeStr = String.format("%d:%02d:%02d", hours, minutes, seconds);
+                } else {
+                    timeStr = String.format("%02d:%02d", minutes, seconds);
+                }
+
+                String info = String.format(
+                        "Title: %s\nAlbum: %s\nDuration: %s \n\nID:\n%s",
+                        selectedSong.getTitle(),
+                        selectedSong.getAlbum(),
+                        timeStr,
+                        selectedSong.getId()
+                );
+
+                JTextArea textArea = new JTextArea();
+                textArea.setEditable(false);
+                textArea.setLineWrap(true);
+                textArea.setWrapStyleWord(true);
+                textArea.setForeground(Color.BLACK);
+                textArea.setFont(new Font("Consolas", Font.PLAIN, 13));
+
+                textArea.setText(info);
+
+                JScrollPane scrollPane = new JScrollPane(textArea);
+                scrollPane.setPreferredSize(new Dimension(380, 200));
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        scrollPane,
+                        "Song Information",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+
+            } else {
+                JOptionPane.showMessageDialog(this, "Select a song first!");
+            }
+
+        });
+
         sortByAlbumButton.addActionListener(e -> {
             updateListSortedByAlbum();
         });
@@ -150,6 +215,7 @@ public class SwiftManagerWindow extends JFrame{
 
 
         updateList("");
+        updateStatusBar();
 
         setVisible(true);
 
@@ -166,6 +232,9 @@ public class SwiftManagerWindow extends JFrame{
                 listModel.addElement(s);
             }
         }
+
+        updateStatusBar();
+
     }
 
     private void updateListSortedByAlbum(){
@@ -177,6 +246,8 @@ public class SwiftManagerWindow extends JFrame{
             listModel.addElement(s);
         }
 
+        updateStatusBar();
+
     }
 
     private void updateListSortedByDuration() {
@@ -187,6 +258,32 @@ public class SwiftManagerWindow extends JFrame{
         for(Song s : sortedList) {
             listModel.addElement(s);
         }
+
+        updateStatusBar();
+
+    }
+
+    private void updateStatusBar(){
+
+        List<Song> allSongs = service.getAll();
+        int count = allSongs.size();
+
+        int totalSeconds = allSongs.stream()
+                .mapToInt(Song::getDurationInSeconds)
+                .sum();
+
+        int hours = totalSeconds / 3600;
+        int minutes = (totalSeconds % 3600) / 60;
+        int seconds = totalSeconds % 60;
+
+        String timeStr;
+        if(hours > 0) {
+            timeStr = String.format("%d:%02d:%02d", hours, minutes, seconds);
+        } else {
+            timeStr = String.format("%02d:%02d", minutes, seconds);
+        }
+
+        statusBar.setText(String.format("Total Songs: %d | Total Time: %s", count, timeStr));
 
     }
 
