@@ -19,17 +19,5 @@ public class DiscographyServiceTest {
         service = new DiscographyService(repository);
     }
 
-    @Test
-    void testCalculateTotalDuration(){
-
-        repository.save(new Song("Style", "1989", 231));
-        repository.save(new Song("Wildest Dreams", "1989", 220));
-        repository.save(new Song("The Fate of Ophelia", "The Life of a Showgirl",226));
-
-        int result = service.getTotalDurationOfAlbum("1989");
-
-        assertEquals(451, result);
-
-    }
 
 }

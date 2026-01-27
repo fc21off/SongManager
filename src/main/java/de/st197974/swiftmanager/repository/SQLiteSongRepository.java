@@ -20,6 +20,7 @@ public class SQLiteSongRepository implements SongRepository{
                 CREATE TABLE IF NOT EXISTS songs (
                     id TEXT PRIMARY KEY,
                     title TEXT NOT NULL,
+                    artist TEXT NOT NULL,
                     album TEXT,
                     duration INTEGER
                 );
@@ -37,14 +38,15 @@ public class SQLiteSongRepository implements SongRepository{
 
     @Override
     public void save(Song song) {
-        String sql = "INSERT OR REPLACE INTO songs(id, title, album, duration) VALUES (?,?,?,?)";
+        String sql = "INSERT OR REPLACE INTO songs(id, title, artist, album, duration) VALUES (?,?,?,?,?)";
 
         try (Connection conn = DriverManager.getConnection(URL); PreparedStatement preparedStatement = conn.prepareStatement(sql)) {
 
             preparedStatement.setString(1, song.getId());
             preparedStatement.setString(2, song.getTitle());
-            preparedStatement.setString(3, song.getAlbum());
-            preparedStatement.setInt(4, song.getDurationInSeconds());
+            preparedStatement.setString(3, song.getArtist());
+            preparedStatement.setString(4, song.getAlbum());
+            preparedStatement.setInt(5, song.getDurationInSeconds());
 
             preparedStatement.executeUpdate();
             logger.info("Song saved into Database: {} ({})", song.getTitle(), song.getId());
@@ -69,6 +71,7 @@ public class SQLiteSongRepository implements SongRepository{
                         rs.getString("id"),
                         rs.getString("title"),
                         rs.getString("album"),
+                        rs.getString("artist"),
                         rs.getInt("duration")
                 );
                 songs.add(song);
@@ -94,6 +97,7 @@ public class SQLiteSongRepository implements SongRepository{
                         rs.getString("id"),
                         rs.getString("title"),
                         rs.getString("album"),
+                        rs.getString("artist"),
                         rs.getInt("duration")
                 );
             }
@@ -103,6 +107,39 @@ public class SQLiteSongRepository implements SongRepository{
 
         return null;
     }
+
+    @Override
+    public List<Song> findByArtist(String artist) {
+        List<Song> songs = new ArrayList<>();
+        String sql = "SELECT * FROM songs WHERE LOWER(artist) LIKE LOWER(?)";
+
+        try (Connection conn = DriverManager.getConnection(URL);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, "%" + artist + "%");
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                Song song = new Song(
+                        rs.getString("id"),
+                        rs.getString("title"),
+                        rs.getString("album"),
+                        rs.getString("artist"),
+                        rs.getInt("duration")
+                );
+                songs.add(song);
+            }
+
+            logger.info("Found {} songs for artist search '{}'", songs.size(), artist);
+
+        } catch (SQLException e) {
+            logger.error("Error while searching songs by artist: {}", artist, e);
+        }
+
+        return songs;
+    }
+
+
 
     @Override
     public void deleteByID(String id) {

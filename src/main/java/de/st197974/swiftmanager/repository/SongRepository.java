@@ -11,6 +11,8 @@ public interface SongRepository {
 
     Song findByID(String id);
 
+    List<Song> findByArtist(String artist);
+
     void deleteByID(String id);
 
 }

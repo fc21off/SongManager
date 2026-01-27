@@ -27,6 +27,14 @@ public class InMemorySongRepository implements SongRepository{
                 .orElse(null);
     }
 
+    public List<Song> findByArtist(String artist) {
+
+        return songList.stream()
+                .filter(s -> s.getArtist().equalsIgnoreCase(artist))
+                .toList();
+
+    }
+
     @Override
     public void deleteByID(String id) {
         songList.removeIf(s -> s.getId().equals(id));

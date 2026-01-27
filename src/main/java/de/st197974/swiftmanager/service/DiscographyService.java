@@ -81,4 +81,17 @@ public class DiscographyService {
 
     }
 
+    public List<String> getAllArtists() {
+        return repository.findAll().stream()
+                .map(Song::getArtist)
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
+
+    public List<Song> getSongsByArtist(String artist) {
+        return repository.findByArtist(artist);
+    }
+
+
 }
