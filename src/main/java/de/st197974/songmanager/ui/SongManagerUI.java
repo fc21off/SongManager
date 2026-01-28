@@ -1,7 +1,7 @@
-package de.st197974.swiftmanager.ui;
+package de.st197974.songmanager.ui;
 
-import de.st197974.swiftmanager.model.Song;
-import de.st197974.swiftmanager.service.DiscographyService;
+import de.st197974.songmanager.model.Song;
+import de.st197974.songmanager.service.DiscographyService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -13,9 +13,9 @@ import java.awt.*;
 import java.util.Comparator;
 import java.util.List;
 
-public class SwiftManagerWindow extends JFrame {
+public class SongManagerUI extends JFrame {
 
-    private static final Logger logger = LogManager.getLogger(SwiftManagerWindow.class);
+    private static final Logger logger = LogManager.getLogger(SongManagerUI.class);
 
     private final DiscographyService service;
 
@@ -28,7 +28,7 @@ public class SwiftManagerWindow extends JFrame {
     private JList<Song> songList;
     private JTextField songSearchField;
 
-    public SwiftManagerWindow(DiscographyService service) {
+    public SongManagerUI(DiscographyService service) {
         this.service = service;
 
         setTitle("SongManager 2.0");
@@ -90,11 +90,11 @@ public class SwiftManagerWindow extends JFrame {
         songSearchPanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
 
         JButton sortByAlbumButton = new JButton("Sort by Album");
-        sortByAlbumButton.addActionListener(e -> sortSongsByAlbum());
+        sortByAlbumButton.addActionListener(_ -> sortSongsByAlbum());
         JButton sortByDurationButton = new JButton("Sort by Duration");
-        sortByDurationButton.addActionListener(e -> sortSongsByDuration());
+        sortByDurationButton.addActionListener(_ -> sortSongsByDuration());
         JButton sortAlphabeticallyButton = new JButton("Sort Alphabetically");
-        sortAlphabeticallyButton.addActionListener(e -> sortSongsAlphabetically((artistList.getSelectedValue() != null) ? artistList.getSelectedValue() : null));
+        sortAlphabeticallyButton.addActionListener(_ -> sortSongsAlphabetically((artistList.getSelectedValue() != null) ? artistList.getSelectedValue() : null));
 
         statusBar.setBorder(BorderFactory.createEmptyBorder(5,10,5,10));
         statusBar.setHorizontalAlignment(SwingConstants.CENTER);
@@ -134,10 +134,10 @@ public class SwiftManagerWindow extends JFrame {
         JButton infoButton = new JButton("Song Info");
         JButton editButton = new JButton("Edit Song");
 
-        addButton.addActionListener(e -> triggerAddSongDialog());
-        deleteButton.addActionListener(e -> deleteSelectedSong());
-        infoButton.addActionListener(e -> showSongInfo());
-        editButton.addActionListener(e -> editSelectedSong());
+        addButton.addActionListener(_ -> triggerAddSongDialog());
+        deleteButton.addActionListener(_ -> deleteSelectedSong());
+        infoButton.addActionListener(_ -> showSongInfo());
+        editButton.addActionListener(_ -> editSelectedSong());
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setBorder(BorderFactory.createCompoundBorder(line, padding));

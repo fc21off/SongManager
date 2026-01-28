@@ -1,12 +1,8 @@
-package de.st197974.swiftmanager.service;
+package de.st197974.songmanager.service;
 
-import de.st197974.swiftmanager.model.Song;
-import de.st197974.swiftmanager.repository.InMemorySongRepository;
-import de.st197974.swiftmanager.repository.SongRepository;
+import de.st197974.songmanager.repository.InMemorySongRepository;
+import de.st197974.songmanager.repository.SongRepository;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 public class DiscographyServiceTest {
 

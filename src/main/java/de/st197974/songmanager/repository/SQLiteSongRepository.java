@@ -1,6 +1,6 @@
-package de.st197974.swiftmanager.repository;
+package de.st197974.songmanager.repository;
 
-import de.st197974.swiftmanager.model.Song;
+import de.st197974.songmanager.model.Song;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

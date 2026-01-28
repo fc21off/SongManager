@@ -26,7 +26,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>de.st197974.swiftmanager.Main</mainClass>
+                  <mainClass>de.st197974.songmanager.Main</mainClass>
                 </transformer>
               </transformers>
               <shadedArtifactAttached>true</shadedArtifactAttached>

@@ -1,6 +1,6 @@
-package de.st197974.swiftmanager.repository;
+package de.st197974.songmanager.repository;
 
-import de.st197974.swiftmanager.model.Song;
+import de.st197974.songmanager.model.Song;
 
 import java.util.ArrayList;
 import java.util.List;

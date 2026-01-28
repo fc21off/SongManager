@@ -1,13 +1,12 @@
-package de.st197974.swiftmanager.service;
+package de.st197974.songmanager.service;
 
-import de.st197974.swiftmanager.model.Song;
-import de.st197974.swiftmanager.repository.SongRepository;
+import de.st197974.songmanager.model.Song;
+import de.st197974.songmanager.repository.SongRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class DiscographyService {
 

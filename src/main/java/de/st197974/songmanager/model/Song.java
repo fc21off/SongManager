@@ -1,4 +1,4 @@
-package de.st197974.swiftmanager.model;
+package de.st197974.songmanager.model;
 
 import java.util.UUID;
 
