@@ -32,7 +32,7 @@ public class SongManagerUI extends JFrame {
         this.service = service;
 
         setTitle("SongManager 2.0");
-        setSize(750, 850);
+        setSize(750, 860);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
         setResizable(false);
