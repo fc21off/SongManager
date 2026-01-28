@@ -22,7 +22,7 @@ public class DiscographyService {
     public List<Song> getSongsByAlbum(String albumName) {
         return repository.findAll().stream()
                 .filter(song -> song.getAlbum().equalsIgnoreCase(albumName))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<Song> getAll() {
@@ -70,14 +70,14 @@ public class DiscographyService {
         return repository.findAll().stream()
                 .sorted(Comparator.comparing(Song::getAlbum, String.CASE_INSENSITIVE_ORDER)
                         .thenComparing(Song::getTitle, String.CASE_INSENSITIVE_ORDER))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<Song> getAllSortedByDuration() {
 
         return repository.findAll().stream()
                 .sorted(Comparator.comparing(Song::getDurationInSeconds))
-                .collect(Collectors.toList());
+                .toList();
 
     }
 
@@ -93,5 +93,25 @@ public class DiscographyService {
         return repository.findByArtist(artist);
     }
 
+    public List<Song> getSongsByArtistSortedByAlbum(String artist) {
+        return repository.findByArtist(artist).stream()
+                .sorted(Comparator.comparing(Song::getAlbum, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(Song::getTitle, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    public List<Song> getSongsByArtistSortedByDuration(String artist) {
+        return repository.findByArtist(artist).stream()
+                .sorted(Comparator.comparingInt(Song::getDurationInSeconds))
+                .toList();
+    }
+
+    public List<Song> getSongsAlphabetically(String artist) {
+
+        return repository.findByArtist(artist).stream()
+                .sorted(Comparator.comparing(Song::getTitle, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+
+    }
 
 }
