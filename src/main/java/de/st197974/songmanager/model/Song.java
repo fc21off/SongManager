@@ -2,31 +2,11 @@ package de.st197974.songmanager.model;
 
 import java.util.UUID;
 
-public class Song {
-
-    private String id;
-    private String title;
-    private String album;
-    private String artist;
-    private int durationInSeconds;
+public record Song(String id, String title, String album, String artist, int durationInSeconds) {
 
     public Song(String title, String album, String artist, int durationInSeconds) {
         this(UUID.randomUUID().toString(), title, album, artist, durationInSeconds);
     }
-
-    public Song(String id, String title, String album, String artist, int durationInSeconds) {
-        this.id = id;
-        this.title = title;
-        this.album = album;
-        this.durationInSeconds = durationInSeconds;
-        this.artist = artist;
-    }
-
-    public String getId() { return id; }
-    public String getTitle() { return title; }
-    public String getAlbum() { return album; }
-    public String getArtist() { return artist; }
-    public int getDurationInSeconds() { return durationInSeconds; }
 
     @Override
     public String toString() {
@@ -34,19 +14,28 @@ public class Song {
     }
 
     public String toDisplayString() {
-        return "<html><table width='460'>" +
+
+        if ("null".equals(this.id)) {
+            return "<html><div style='text-align: center; width: 380px; padding: 5px; color: #888888;'>" +
+                    "<i>" + title + "</i>" +
+                    "</div></html>";
+        }
+
+        String albumInfo = (album == null || album.trim().isEmpty())
+                ? ""
+                : " <font color='gray'> (" + album + ")</font>";
+
+        return "<html><table width='480'>" +
                 "<tr>" +
                 "<td align='left'>" +
-                title +
-                " <b>– " + artist + "</b>" +
-                " <font color='gray'> (" + album + ")</font>" +
+                title + " <b>– " + artist + "</b>" + albumInfo +
                 "</td>" +
-                "<td align='right'><b>" + formatTime(durationInSeconds) + "</b></td>" +
+                "<td align='right' width='60'><b>" + formatTime(durationInSeconds) + "</b></td>" +
                 "</tr>" +
                 "</table></html>";
     }
 
-    public String formatTime(int duration){
+    public String formatTime(int duration) {
         int minutes = duration / 60;
         int seconds = duration % 60;
 

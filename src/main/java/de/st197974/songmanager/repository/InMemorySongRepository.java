@@ -5,7 +5,7 @@ import de.st197974.songmanager.model.Song;
 import java.util.ArrayList;
 import java.util.List;
 
-public class InMemorySongRepository implements SongRepository{
+public class InMemorySongRepository implements SongRepository {
 
     private final List<Song> songList = new ArrayList<>();
 
@@ -22,7 +22,7 @@ public class InMemorySongRepository implements SongRepository{
     @Override
     public Song findByID(String id) {
         return songList.stream()
-                .filter(s -> s.getId().equals(id))
+                .filter(s -> s.id().equals(id))
                 .findFirst()
                 .orElse(null);
     }
@@ -30,13 +30,13 @@ public class InMemorySongRepository implements SongRepository{
     public List<Song> findByArtist(String artist) {
 
         return songList.stream()
-                .filter(s -> s.getArtist().equalsIgnoreCase(artist))
+                .filter(s -> s.artist().equalsIgnoreCase(artist))
                 .toList();
 
     }
 
     @Override
     public void deleteByID(String id) {
-        songList.removeIf(s -> s.getId().equals(id));
+        songList.removeIf(s -> s.id().equals(id));
     }
 }

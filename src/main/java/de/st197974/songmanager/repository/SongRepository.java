@@ -1,6 +1,7 @@
 package de.st197974.songmanager.repository;
 
 import de.st197974.songmanager.model.Song;
+
 import java.util.List;
 
 public interface SongRepository {

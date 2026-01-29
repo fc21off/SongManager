@@ -20,7 +20,7 @@ public class DiscographyService {
 
     public List<Song> getSongsByAlbum(String albumName) {
         return repository.findAll().stream()
-                .filter(song -> song.getAlbum().equalsIgnoreCase(albumName))
+                .filter(song -> song.album().equalsIgnoreCase(albumName))
                 .toList();
     }
 
@@ -28,28 +28,28 @@ public class DiscographyService {
         return repository.findAll();
     }
 
-    public int getTotalDurationOfAlbum(String albumName){
+    public int getTotalDurationOfAlbum(String albumName) {
         return repository.findAll().stream()
-                .filter(song -> song.getAlbum().equalsIgnoreCase(albumName))
-                .mapToInt(Song::getDurationInSeconds)
+                .filter(song -> song.album().equalsIgnoreCase(albumName))
+                .mapToInt(Song::durationInSeconds)
                 .sum();
     }
 
-    public void addSongSafely(Song song){
-        if(song.getTitle() == null || song.getTitle().isEmpty()) {
+    public void addSongSafely(Song song) {
+        if (song.title() == null || song.title().isEmpty()) {
             logger.warn("Attempted to add song without title!");
             return;
         }
 
         repository.save(song);
 
-        logger.info("Song {} added successfully!", song.getTitle());
+        logger.info("Song {} added successfully!", song.title());
     }
 
     public String getSongTitleById(String id) {
         return repository.findAll().stream()
-                .filter(s -> s.getId().equals(id))
-                .map(Song::getTitle)
+                .filter(s -> s.id().equals(id))
+                .map(Song::title)
                 .findFirst()
                 .orElse("Unknown Song");
     }
@@ -57,9 +57,9 @@ public class DiscographyService {
     public void deleteSong(String id) {
 
         boolean exists = repository.findAll().stream()
-                        .anyMatch(song -> song.getId().equals(id));
+                .anyMatch(song -> song.id().equals(id));
 
-        if(!exists) return;
+        if (!exists) return;
         logger.info("Song {} was deleted!", getSongTitleById(id));
         repository.deleteByID(id);
 
@@ -67,22 +67,22 @@ public class DiscographyService {
 
     public List<Song> getAllSortedByAlbum() {
         return repository.findAll().stream()
-                .sorted(Comparator.comparing(Song::getAlbum, String.CASE_INSENSITIVE_ORDER)
-                        .thenComparing(Song::getTitle, String.CASE_INSENSITIVE_ORDER))
+                .sorted(Comparator.comparing(Song::album, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(Song::title, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
 
     public List<Song> getAllSortedByDuration() {
 
         return repository.findAll().stream()
-                .sorted(Comparator.comparing(Song::getDurationInSeconds))
+                .sorted(Comparator.comparing(Song::durationInSeconds))
                 .toList();
 
     }
 
     public List<String> getAllArtists() {
         return repository.findAll().stream()
-                .map(Song::getArtist)
+                .map(Song::artist)
                 .distinct()
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .toList();
@@ -94,22 +94,34 @@ public class DiscographyService {
 
     public List<Song> getSongsByArtistSortedByAlbum(String artist) {
         return repository.findByArtist(artist).stream()
-                .sorted(Comparator.comparing(Song::getAlbum, String.CASE_INSENSITIVE_ORDER)
-                        .thenComparing(Song::getTitle, String.CASE_INSENSITIVE_ORDER))
+                .sorted(Comparator.comparing(Song::album, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(Song::title, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
 
     public List<Song> getSongsByArtistSortedByDuration(String artist) {
         return repository.findByArtist(artist).stream()
-                .sorted(Comparator.comparingInt(Song::getDurationInSeconds))
+                .sorted(Comparator.comparingInt(Song::durationInSeconds))
                 .toList();
     }
 
     public List<Song> getSongsAlphabetically(String artist) {
 
         return repository.findByArtist(artist).stream()
-                .sorted(Comparator.comparing(Song::getTitle, String.CASE_INSENSITIVE_ORDER))
+                .sorted(Comparator.comparing(Song::title, String.CASE_INSENSITIVE_ORDER))
                 .toList();
+
+    }
+
+    public void updateSongSafely(Song updatedSong) {
+
+        if(updatedSong.id() == null || updatedSong.title().isEmpty()) {
+            logger.warn("Update Failed: Song ID or Title Missing!");
+            return;
+        }
+
+        repository.save(updatedSong);
+        logger.info("Song Updated: {} (ID: {}", updatedSong.title(), updatedSong.id());
 
     }
 

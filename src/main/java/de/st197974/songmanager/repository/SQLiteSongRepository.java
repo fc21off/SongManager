@@ -8,13 +8,14 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SQLiteSongRepository implements SongRepository{
+public class SQLiteSongRepository implements SongRepository {
 
     private static final Logger logger = LogManager.getLogger(SQLiteSongRepository.class);
 
     private static final String URL = "jdbc:sqlite:songs.db";
 
-    public SQLiteSongRepository(){
+    public SQLiteSongRepository() {
+
 
         String sql = """
                 CREATE TABLE IF NOT EXISTS songs (
@@ -27,7 +28,7 @@ public class SQLiteSongRepository implements SongRepository{
                 """;
 
         try (Connection conn = DriverManager.getConnection(URL);
-            Statement statement = conn.createStatement()) {
+             Statement statement = conn.createStatement()) {
             statement.execute(sql);
             logger.info("SQLite Repository initialized and table checked!");
         } catch (SQLException e) {
@@ -42,14 +43,14 @@ public class SQLiteSongRepository implements SongRepository{
 
         try (Connection conn = DriverManager.getConnection(URL); PreparedStatement preparedStatement = conn.prepareStatement(sql)) {
 
-            preparedStatement.setString(1, song.getId());
-            preparedStatement.setString(2, song.getTitle());
-            preparedStatement.setString(3, song.getArtist());
-            preparedStatement.setString(4, song.getAlbum());
-            preparedStatement.setInt(5, song.getDurationInSeconds());
+            preparedStatement.setString(1, song.id());
+            preparedStatement.setString(2, song.title());
+            preparedStatement.setString(3, song.artist());
+            preparedStatement.setString(4, song.album());
+            preparedStatement.setInt(5, song.durationInSeconds());
 
             preparedStatement.executeUpdate();
-            logger.info("Song saved into Database: {} ({})", song.getTitle(), song.getId());
+            logger.info("Song saved into Database: {} ({})", song.title(), song.id());
 
         } catch (SQLException e) {
             logger.error("Error while saving into SQLite", e);
@@ -130,15 +131,12 @@ public class SQLiteSongRepository implements SongRepository{
                 songs.add(song);
             }
 
-            logger.info("Found {} songs for artist search '{}'", songs.size(), artist);
-
         } catch (SQLException e) {
             logger.error("Error while searching songs by artist: {}", artist, e);
         }
 
         return songs;
     }
-
 
 
     @Override

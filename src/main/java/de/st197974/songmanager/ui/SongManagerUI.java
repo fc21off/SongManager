@@ -10,6 +10,7 @@ import javax.swing.border.Border;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.util.Comparator;
 import java.util.List;
 
@@ -21,6 +22,8 @@ public class SongManagerUI extends JFrame {
 
     private final DefaultListModel<String> artistModel = new DefaultListModel<>();
     private final DefaultListModel<Song> songModel = new DefaultListModel<>();
+
+    private final Song EMPTY_SONG_PLACEHOLDER = new Song("null", "No Songs found...", "", "", 0);
 
     private final JLabel statusBar = new JLabel();
 
@@ -49,15 +52,12 @@ public class SongManagerUI extends JFrame {
     private void buildTop() {
         JPanel searchPanel = new JPanel(new BorderLayout());
         JTextField searchField = new JTextField();
+        silenceBackspace(searchField);
 
         searchPanel.add(new JLabel(" Search Artist: "), BorderLayout.WEST);
         searchPanel.add(searchField, BorderLayout.CENTER);
 
-        searchField.getDocument().addDocumentListener(new DocumentListener() {
-            public void insertUpdate(DocumentEvent e) { filterArtists(searchField.getText().trim()); }
-            public void removeUpdate(DocumentEvent e) { filterArtists(searchField.getText().trim()); }
-            public void changedUpdate(DocumentEvent e) { filterArtists(searchField.getText().trim()); }
-        });
+        addSearchListener(searchField, () -> filterArtists(searchField.getText().trim()));
 
         add(searchPanel, BorderLayout.NORTH);
     }
@@ -76,18 +76,15 @@ public class SongManagerUI extends JFrame {
         });
 
         songSearchField = new JTextField();
-        songSearchField.getDocument().addDocumentListener(new DocumentListener() {
-            public void insertUpdate(DocumentEvent e) { filterSongs(songSearchField.getText().trim()); }
-            public void removeUpdate(DocumentEvent e) { filterSongs(songSearchField.getText().trim()); }
-            public void changedUpdate(DocumentEvent e) { filterSongs(songSearchField.getText().trim()); }
-        });
+        silenceBackspace(songSearchField);
+        addSearchListener(songSearchField, () -> filterSongs(songSearchField.getText().trim()));
 
         JPanel rightPanel = new JPanel(new BorderLayout());
 
         JPanel songSearchPanel = new JPanel(new BorderLayout(5, 5));
         songSearchPanel.add(new JLabel("Search Song:"), BorderLayout.WEST);
         songSearchPanel.add(songSearchField, BorderLayout.CENTER);
-        songSearchPanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        songSearchPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         JButton sortByAlbumButton = new JButton("Sort by Album");
         sortByAlbumButton.addActionListener(_ -> sortSongsByAlbum());
@@ -96,7 +93,7 @@ public class SongManagerUI extends JFrame {
         JButton sortAlphabeticallyButton = new JButton("Sort Alphabetically");
         sortAlphabeticallyButton.addActionListener(_ -> sortSongsAlphabetically((artistList.getSelectedValue() != null) ? artistList.getSelectedValue() : null));
 
-        statusBar.setBorder(BorderFactory.createEmptyBorder(5,10,5,10));
+        statusBar.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
         statusBar.setHorizontalAlignment(SwingConstants.CENTER);
 
         JPanel buttonPanel = new JPanel(new GridLayout(1, 3, 5, 5));
@@ -105,8 +102,8 @@ public class SongManagerUI extends JFrame {
         buttonPanel.add(sortAlphabeticallyButton);
 
         JPanel mainControlPanel = new JPanel(new BorderLayout(5, 5));
-        mainControlPanel.add(buttonPanel, BorderLayout.CENTER); // Buttons oben/mitte
-        mainControlPanel.add(statusBar, BorderLayout.SOUTH);    // Statusbar über die volle Breite unten
+        mainControlPanel.add(buttonPanel, BorderLayout.CENTER);
+        mainControlPanel.add(statusBar, BorderLayout.SOUTH);
 
         mainControlPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
@@ -134,7 +131,7 @@ public class SongManagerUI extends JFrame {
         JButton infoButton = new JButton("Song Info");
         JButton editButton = new JButton("Edit Song");
 
-        addButton.addActionListener(_ -> triggerAddSongDialog());
+        addButton.addActionListener(_ -> showSongForm(null));
         deleteButton.addActionListener(_ -> deleteSelectedSong());
         infoButton.addActionListener(_ -> showSongInfo());
         editButton.addActionListener(_ -> editSelectedSong());
@@ -146,7 +143,6 @@ public class SongManagerUI extends JFrame {
         buttonPanel.add(infoButton);
         buttonPanel.add(editButton);
         buttonPanel.add(deleteButton);
-
 
         JPanel bottom = new JPanel();
         bottom.setLayout(new BoxLayout(bottom, BoxLayout.Y_AXIS));
@@ -176,7 +172,6 @@ public class SongManagerUI extends JFrame {
         List<Song> songs = service.getSongsAlphabetically(artist);
         songs.forEach(songModel::addElement);
 
-
         updateStatusBar(songs, artist);
     }
 
@@ -189,113 +184,91 @@ public class SongManagerUI extends JFrame {
                 .toList();
 
         artistModel.clear();
-        filtered.forEach(artistModel::addElement);
 
-        if (!artistModel.isEmpty()) {
-            artistList.setSelectedIndex(0);
+        if (filtered.isEmpty() && !lowerQuery.isEmpty()) {
+            artistModel.addElement(" No Result for '" + query + "'!");
+        } else {
+            filtered.forEach(artistModel::addElement);
+            if (!artistModel.isEmpty()) {
+                artistList.setSelectedIndex(0);
+            }
         }
+
     }
 
     private void filterSongs(String query) {
-
-        String artist = artistList.getSelectedValue();
-        if (artist == null) return;
-
         String lowerQuery = query.toLowerCase();
+        List<Song> results;
 
-        List<Song> filtered = service.getSongsByArtist(artist).stream()
-                .filter(s -> s.getTitle().toLowerCase().contains(lowerQuery) || s.getAlbum().toLowerCase().contains(lowerQuery))
-                .sorted(Comparator.comparing(Song::getTitle, String.CASE_INSENSITIVE_ORDER))
-                .toList();
+        if (lowerQuery.isEmpty()) {
+            String artist = artistList.getSelectedValue();
+            if (artist == null) {
+                songModel.clear();
+                return;
+            }
+            results = service.getSongsByArtist(artist);
+        } else {
+            results = service.getAll().stream()
+                    .filter(s -> s.title().toLowerCase().contains(lowerQuery) ||
+                            s.album().toLowerCase().contains(lowerQuery) ||
+                            s.artist().toLowerCase().contains(lowerQuery))
+                    .sorted(Comparator.comparing(Song::title, String.CASE_INSENSITIVE_ORDER))
+                    .toList();
+        }
 
-        refreshSongList(filtered);
+        refreshSongList(results);
+
+        String statusInfo = lowerQuery.isEmpty() ? artistList.getSelectedValue() : "Search: '" + query + "'";
+        updateStatusBar(results, statusInfo);
 
     }
 
     private void deleteSelectedSong() {
-        Song song = songList.getSelectedValue();
-        if (song == null) return;
+        Song s = songList.getSelectedValue();
+        if (s == null || s == EMPTY_SONG_PLACEHOLDER) {
+            JOptionPane.showMessageDialog(this, "Select a song first!");
+            return;
+        }
 
         int confirm = JOptionPane.showConfirmDialog(this,
-                "Delete '" + song.getTitle() + "'?",
+                "Delete '" + s.title() + "'?",
                 "Confirm", JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
-            service.deleteSong(song.getId());
-            loadSongs(song.getArtist());
-            logger.info("Deleted song {}", song.getTitle());
+
+            String currentArtist = s.artist();
+
+            service.deleteSong(s.id());
+            loadSongs(s.artist());
+            loadArtists(null);
+
+            if (artistModel.contains(currentArtist)) {
+                loadSongs(currentArtist);
+            }
+
+            logger.info("Deleted song {}", s.title());
         }
     }
 
     private void showSongInfo() {
         Song s = songList.getSelectedValue();
-        if (s == null) {
+        if (s == null || s == EMPTY_SONG_PLACEHOLDER) {
             JOptionPane.showMessageDialog(this, "Select a song first!");
             return;
         }
 
         JOptionPane.showMessageDialog(this,
-                "Title: " + s.getTitle() +
-                        "\nArtist: " + s.getArtist() +
-                        "\nAlbum: " + s.getAlbum() +
-                        "\nDuration: " + s.formatTime(s.getDurationInSeconds()) + " (" + s.getDurationInSeconds() + "s)",
+                "Title: " + s.title() +
+                        "\nArtist: " + s.artist() +
+                        "\nAlbum: " + s.album() +
+                        "\nDuration: " + s.formatTime(s.durationInSeconds()) + " (" + s.durationInSeconds() + "s)",
                 "Song Info",
                 JOptionPane.INFORMATION_MESSAGE);
     }
 
-    private void addSong(JTextField titleField, JTextField albumField, JTextField artistField, JTextField durationField) {
-
-        try {
-            String title = titleField.getText();
-            String album = albumField.getText();
-            String artist = artistField.getText();
-            int duration = Integer.parseInt(durationField.getText());
-
-            Song newSong = new Song(title, album, artist, duration);
-            service.addSongSafely(newSong);
-
-            titleField.setText("");
-            albumField.setText("");
-            durationField.setText("");
-
-            loadSongs(artist);
-            logger.info("Added new song: {}", title);
-
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Enter a valid number for duration!");
-        }
-    }
-
-    public void triggerAddSongDialog() {
-        JTextField titleField = new JTextField(15);
-        JTextField albumField = new JTextField(15);
-        JTextField artistField = new JTextField(15);
-        JTextField durationField = new JTextField(15);
-
-        JPanel panel = new JPanel(new GridLayout(0, 1, 5, 5));
-        panel.add(new JLabel(" Title: "));
-        panel.add(titleField);
-        panel.add(new JLabel(" Album: "));
-        panel.add(albumField);
-        panel.add(new JLabel(" Artist: "));
-        panel.add(artistField);
-        panel.add(new JLabel(" Duration (in s): "));
-        panel.add(durationField);
-
-        int result = JOptionPane.showConfirmDialog(this, panel,
-                "Add new Song!",
-                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
-        if (result == JOptionPane.OK_OPTION) {
-            String enteredArtist = artistField.getText().trim();
-            addSong(titleField, albumField, artistField, durationField);
-            loadArtists(enteredArtist);
-        }
-    }
-
     private void updateStatusBar(List<Song> songs, String artist) {
 
-        int totalSeconds = songs.stream().mapToInt(Song::getDurationInSeconds).sum();
+        int totalSeconds = songs.stream().mapToInt(Song::durationInSeconds).sum();
 
         int min = totalSeconds / 60;
         int sec = totalSeconds % 60;
@@ -305,7 +278,11 @@ public class SongManagerUI extends JFrame {
 
     private void refreshSongList(List<Song> songs) {
         songModel.clear();
-        songs.forEach(songModel::addElement);
+        if(songs.isEmpty()) {
+            songModel.addElement(EMPTY_SONG_PLACEHOLDER);
+        } else {
+            songs.forEach(songModel::addElement);
+        }
     }
 
     private void sortSongsByAlbum() {
@@ -326,51 +303,117 @@ public class SongManagerUI extends JFrame {
 
     private void sortSongsAlphabetically(String artist) {
 
-        if(artist != null) {
+        if (artist != null) {
             List<Song> sortedSongs = service.getSongsAlphabetically(artist);
             refreshSongList(sortedSongs);
         }
 
     }
 
-
     private void editSelectedSong() {
         Song s = songList.getSelectedValue();
-        if (s == null) {
+        if (s == null || s == EMPTY_SONG_PLACEHOLDER) {
             JOptionPane.showMessageDialog(this, "Select a song first!");
             return;
         }
+        showSongForm(s);
+    }
 
-        JTextField titleField = new JTextField(15);
-        titleField.setText(s.getTitle());
-        JTextField albumField = new JTextField(15);
-        albumField.setText(s.getAlbum());
-        JTextField artistField = new JTextField(15);
-        artistField.setText(s.getArtist());
-        JTextField durationField = new JTextField(15);
-        durationField.setText(String.valueOf(s.getDurationInSeconds()));
+    private void showSongForm(Song songToEdit) {
+        boolean isEdit = (songToEdit != null);
 
-        JPanel panel = new JPanel(new GridLayout(0, 1, 5, 5));
+        JTextField titleField = new JTextField(isEdit ? songToEdit.title() : "", 15);
+        silenceBackspace(titleField);
+        JTextField albumField = new JTextField(isEdit ? songToEdit.album() : "", 15);
+        silenceBackspace(albumField);
+        JTextField artistField = new JTextField(isEdit ? songToEdit.artist() : "", 15);
+        silenceBackspace(artistField);
+        JTextField durationField = new JTextField(isEdit ? String.valueOf(songToEdit.durationInSeconds()) : "", 15);
+        silenceBackspace(durationField);
+
+        JLabel errorLabel = new JLabel(" ");
+        errorLabel.setForeground(Color.RED);
+        errorLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
+
+        JPanel panel = new JPanel(new GridLayout(0, 1, 2, 2));
         panel.add(new JLabel(" Title: "));
         panel.add(titleField);
-        panel.add(new JLabel(" Album: "));
-        panel.add(albumField);
         panel.add(new JLabel(" Artist: "));
         panel.add(artistField);
+        panel.add(new JLabel(" Album: "));
+        panel.add(albumField);
         panel.add(new JLabel(" Duration (in s): "));
         panel.add(durationField);
+        panel.add(errorLabel);
 
-        int result = JOptionPane.showConfirmDialog(this, panel,
-                "Add new Song!",
-                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        boolean valid = false;
+        while (!valid) {
+            int result = JOptionPane.showConfirmDialog(this, panel,
+                    isEdit ? "Edit Song" : "Add New Song",
+                    JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
-        if (result == JOptionPane.OK_OPTION) {
-            String enteredArtist = artistField.getText().trim();
-            addSong(titleField, albumField, artistField, durationField);
-            service.deleteSong(s.getId());
-            loadArtists(enteredArtist);
+            if (result == JOptionPane.OK_OPTION) {
+                try {
+                    String title = titleField.getText().trim();
+                    String album = albumField.getText().trim();
+                    String artist = artistField.getText().trim();
+                    int duration = Integer.parseInt(durationField.getText().trim());
+
+                    if (isEdit) {
+                        Song updatedSong = new Song(songToEdit.id(), title, album, artist, duration);
+                        service.updateSongSafely(updatedSong);
+                    } else {
+                        service.addSongSafely(new Song(title, album, artist, duration));
+                    }
+
+                    loadArtists(artist);
+                    loadSongs(artist);
+
+                    logger.info("{} song: {}", isEdit ? "Updated" : "Added", title);
+                    valid = true;
+
+                } catch (NumberFormatException e) {
+                    errorLabel.setText(" Please enter a valid number for duration!");
+
+                }
+            } else {
+                valid = true;
+            }
         }
+    }
 
+    private void silenceBackspace(JTextField textField) {
+
+        Action originalAction = textField.getActionMap().get("delete-previous");
+
+        textField.getActionMap().put("delete-previous", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (!textField.getText().isEmpty()) {
+                    originalAction.actionPerformed(e);
+                }
+            }
+        });
+
+    }
+
+    private void addSearchListener(JTextField textField, Runnable action) {
+        textField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                action.run();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                action.run();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                action.run();
+            }
+        });
     }
 
 }
