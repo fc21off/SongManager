@@ -161,4 +161,46 @@ public class SQLitePlaylistRepository implements PlaylistRepository{
 
         return songs;
     }
+
+    @Override
+    public void updatePlaylist(Playlist playlist) {
+        String sql = "UPDATE playlist SET name = ? WHERE id = ?";
+
+        try (Connection conn = DriverManager.getConnection(URL);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, playlist.name());
+            pstmt.setString(2, playlist.id());
+
+            int affectedRows = pstmt.executeUpdate();
+
+            if (affectedRows > 0) {
+                logger.info("Updated playlist '{}' (ID: {})", playlist.name(), playlist.id());
+            } else {
+                logger.warn("No playlist found with ID {} to update.", playlist.id());
+            }
+
+        } catch (SQLException e) {
+            logger.error("Error updating playlist with ID '{}'", playlist.id(), e);
+        }
+    }
+
+    public boolean isSongInPlaylist(String playlistId, String songId) {
+        String sql = "SELECT COUNT (*) FROM playlist_song WHERE playlist_id = ? AND song_id = ?";
+        try (Connection conn = DriverManager.getConnection(URL);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, playlistId);
+            pstmt.setString(2, songId);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            logger.error("Error while checking if Song {} is in Playlist {}", songId, playlistId, e);
+        }
+        return false;
+    }
+
 }

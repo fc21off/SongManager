@@ -19,4 +19,8 @@ public interface PlaylistRepository {
 
     List<Song> getSongsOfPlaylist(String playlistId);
 
+    void updatePlaylist(Playlist playlist);
+
+    boolean isSongInPlaylist(String playlistId, String songId);
+
 }
