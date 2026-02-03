@@ -17,20 +17,42 @@ public class SQLiteSongRepository implements SongRepository {
     public SQLiteSongRepository() {
 
 
-        String sql = """
-                CREATE TABLE IF NOT EXISTS songs (
-                    id TEXT PRIMARY KEY,
-                    title TEXT NOT NULL,
-                    artist TEXT NOT NULL,
-                    album TEXT,
-                    duration INTEGER
-                );
-                """;
+        String sqlSongs = """
+        CREATE TABLE IF NOT EXISTS songs (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            artist TEXT NOT NULL,
+            album TEXT,
+            duration INTEGER
+        );
+        """;
+
+        String sqlPlaylists = """
+        CREATE TABLE IF NOT EXISTS playlist (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL
+        );
+        """;
+
+        String sqlPlaylistSongs = """
+        CREATE TABLE IF NOT EXISTS playlist_song (
+            playlist_id TEXT NOT NULL,
+            song_id TEXT NOT NULL,
+            PRIMARY KEY (playlist_id, song_id),
+            FOREIGN KEY (playlist_id) REFERENCES playlist(id),
+            FOREIGN KEY (song_id) REFERENCES songs(id)
+        );
+        """;
 
         try (Connection conn = DriverManager.getConnection(URL);
              Statement statement = conn.createStatement()) {
-            statement.execute(sql);
-            logger.info("SQLite Repository initialized and table checked!");
+
+                statement.execute(sqlSongs);
+                statement.execute(sqlPlaylistSongs);
+                statement.execute(sqlPlaylists);
+
+                logger.info("SQLite tables initialized");
+
         } catch (SQLException e) {
             logger.error("Error while starting SQLite Database", e);
         }
@@ -112,12 +134,12 @@ public class SQLiteSongRepository implements SongRepository {
     @Override
     public List<Song> findByArtist(String artist) {
         List<Song> songs = new ArrayList<>();
-        String sql = "SELECT * FROM songs WHERE LOWER(artist) LIKE LOWER(?)";
+        String sql = "SELECT * FROM songs WHERE LOWER(artist) = LOWER(?)";
 
         try (Connection conn = DriverManager.getConnection(URL);
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, "%" + artist + "%");
+            pstmt.setString(1, artist);
             ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {

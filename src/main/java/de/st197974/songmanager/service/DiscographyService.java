@@ -8,15 +8,9 @@ import org.apache.logging.log4j.Logger;
 import java.util.Comparator;
 import java.util.List;
 
-public class DiscographyService {
+public record DiscographyService(SongRepository repository) {
 
     private static final Logger logger = LogManager.getLogger(DiscographyService.class);
-
-    private final SongRepository repository;
-
-    public DiscographyService(SongRepository repository) {
-        this.repository = repository;
-    }
 
     public List<Song> getSongsByAlbum(String albumName) {
         return repository.findAll().stream()
@@ -115,7 +109,7 @@ public class DiscographyService {
 
     public void updateSongSafely(Song updatedSong) {
 
-        if(updatedSong.id() == null || updatedSong.title().isEmpty()) {
+        if (updatedSong.id() == null || updatedSong.title().isEmpty()) {
             logger.warn("Update Failed: Song ID or Title Missing!");
             return;
         }
