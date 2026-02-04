@@ -44,12 +44,20 @@ public class SQLiteSongRepository implements SongRepository {
         );
         """;
 
+        String sqlFavorites = """
+        CREATE TABLE IF NOT EXISTS favorites (
+            song_id TEXT PRIMARY KEY,
+            FOREIGN KEY (song_id) REFERENCES songs(id)
+        );
+        """;
+
         try (Connection conn = DriverManager.getConnection(URL);
              Statement statement = conn.createStatement()) {
 
                 statement.execute(sqlSongs);
                 statement.execute(sqlPlaylistSongs);
                 statement.execute(sqlPlaylists);
+                statement.execute(sqlFavorites);
 
                 logger.info("SQLite tables initialized");
 

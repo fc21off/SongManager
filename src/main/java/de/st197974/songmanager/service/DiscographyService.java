@@ -119,4 +119,8 @@ public record DiscographyService(SongRepository repository) {
 
     }
 
+    public Song getSongById(String id) {
+        return repository.findByID(id);
+    }
+
 }

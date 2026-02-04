@@ -3,6 +3,7 @@ package de.st197974.songmanager.ui;
 import de.st197974.songmanager.model.Playlist;
 import de.st197974.songmanager.model.Song;
 import de.st197974.songmanager.service.DiscographyService;
+import de.st197974.songmanager.service.FavoritesService;
 import de.st197974.songmanager.service.PlaylistService;
 import de.st197974.songmanager.ui.panels.FavoritesPanel;
 import de.st197974.songmanager.ui.panels.PlaylistPanel;
@@ -24,6 +25,7 @@ public class SongManagerUI extends JFrame {
 
     private final DiscographyService discographyService;
     private final PlaylistService playlistService;
+    private final FavoritesService favoritesService;
 
     private final DefaultListModel<String> artistModel = new DefaultListModel<>();
     private final DefaultListModel<Song> songModel = new DefaultListModel<>();
@@ -41,9 +43,10 @@ public class SongManagerUI extends JFrame {
     private JList<Song> songList;
     private JTextField songSearchField;
 
-    public SongManagerUI(DiscographyService discographyService, PlaylistService playlistService) {
+    public SongManagerUI(DiscographyService discographyService, PlaylistService playlistService, FavoritesService favoritesService) {
         this.discographyService = discographyService;
         this.playlistService = playlistService;
+        this.favoritesService = favoritesService;
 
         setTitle("SongManager 2.0");
         setSize(750, 860);
@@ -76,7 +79,37 @@ public class SongManagerUI extends JFrame {
     private void buildCenter() {
         artistList = new JList<>(artistModel);
         songList = new JList<>(songModel);
+
+        songList.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                          boolean isSelected, boolean cellHasFocus) {
+                JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof Song song) {
+                    boolean isFav = favoritesService.isFavorite(song.id());
+                    String favoriteStar = isFav ? " <span style='color: #FFAE00;'><b>★</b></span>" : "";
+
+                    String albumInfo = (song.album() == null || song.album().isBlank())
+                            ? favoriteStar
+                            : " <font color='gray'>(" + song.album() + ")</font>" + favoriteStar;
+
+                    label.setText("<html><table width='480'>" +
+                            "<tr>" +
+                            "<td align='left'>" +
+                            song.title() + " <b>– " + song.artist() + "</b>" + albumInfo +
+                            "</td>" +
+                            "<td align='right' style='padding-right:10px;'><b>" + song.formatTime(song.durationInSeconds()) + "</b></td>" +
+                            "</tr>" +
+                            "</table></html>");
+                }
+                return label;
+            }
+        });
+
         artistList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        playlistPanel = new PlaylistPanel(discographyService.repository(), playlistService);
+        favoritesPanel = new FavoritesPanel(favoritesService);
 
         artistList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -126,9 +159,8 @@ public class SongManagerUI extends JFrame {
         tabbedPane = new JTabbedPane();
 
         tabbedPane.addTab("Library", librarySplitPane);
-
-        playlistPanel = new PlaylistPanel(discographyService.repository(), playlistService);
         tabbedPane.addTab("Playlists", playlistPanel);
+        tabbedPane.addTab("Favorites", favoritesPanel);
 
         tabbedPane.addChangeListener(e -> {
 
@@ -309,9 +341,9 @@ public class SongManagerUI extends JFrame {
 
     private void editSelectedSong() {
 
-        if (tabbedPane != null && tabbedPane.getSelectedIndex() == 1) {
+        if (tabbedPane != null && (tabbedPane.getSelectedIndex() == 1 || tabbedPane.getSelectedIndex() == 2)) {
             JOptionPane.showMessageDialog(this,
-                    "Unable to EDIT while viewing playlists.\n" +
+                    "Unable to EDIT here!\n" +
                             "Please switch to 'Library' to manage the main library.",
                     "Action Not Allowed",
                     JOptionPane.WARNING_MESSAGE);
@@ -328,9 +360,9 @@ public class SongManagerUI extends JFrame {
 
     private void deleteSelectedSong() {
 
-        if (tabbedPane != null && tabbedPane.getSelectedIndex() == 1) {
+        if (tabbedPane != null && (tabbedPane.getSelectedIndex() == 1 || tabbedPane.getSelectedIndex() == 2)) {
             JOptionPane.showMessageDialog(this,
-                    "Unable to DELETE while viewing playlists.\n" +
+                    "Unable to DELETE here!\n" +
                             "Please switch to 'Library' to manage the main library.",
                     "Action Not Allowed",
                     JOptionPane.WARNING_MESSAGE);
@@ -461,16 +493,35 @@ public class SongManagerUI extends JFrame {
 
     private void setupSongListContextMenu() {
         JPopupMenu popupMenu = new JPopupMenu();
-        JMenuItem addToPlaylist = new JMenuItem("Add to Playlist...");
 
-        addToPlaylist.addActionListener(_ -> {
-            Song selectedSong = songList.getSelectedValue();
-            if (selectedSong != null && selectedSong != EMPTY_SONG_PLACEHOLDER) {
-                showPlaylistSelectionDialog(selectedSong);
+        popupMenu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+            @Override
+            public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {
+                popupMenu.removeAll();
+
+                Song selectedSong = songList.getSelectedValue();
+                if (selectedSong == null || selectedSong == EMPTY_SONG_PLACEHOLDER) return;
+
+                JMenuItem addToPlaylist = new JMenuItem("Add to Playlist...");
+                addToPlaylist.addActionListener(_ -> showPlaylistSelectionDialog(selectedSong));
+                popupMenu.add(addToPlaylist);
+
+                popupMenu.addSeparator();
+
+                if (favoritesService.isFavorite(selectedSong.id())) {
+                    JMenuItem removeFromFavorites = new JMenuItem("Remove from Favorites");
+                    removeFromFavorites.addActionListener(_ -> removeSongFromFavorites(selectedSong));
+                    popupMenu.add(removeFromFavorites);
+                } else {
+                    JMenuItem addToFavorites = new JMenuItem("Add to Favorites");
+                    addToFavorites.addActionListener(_ -> addSongToFavorites(selectedSong));
+                    popupMenu.add(addToFavorites);
+                }
             }
-        });
 
-        popupMenu.add(addToPlaylist);
+            @Override public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {}
+            @Override public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) {}
+        });
 
         songList.setComponentPopupMenu(popupMenu);
 
@@ -478,7 +529,9 @@ public class SongManagerUI extends JFrame {
             public void mousePressed(java.awt.event.MouseEvent e) {
                 if (SwingUtilities.isRightMouseButton(e)) {
                     int row = songList.locationToIndex(e.getPoint());
-                    songList.setSelectedIndex(row);
+                    if (row != -1) {
+                        songList.setSelectedIndex(row);
+                    }
                 }
             }
         });
@@ -521,6 +574,37 @@ public class SongManagerUI extends JFrame {
 
             }
         }
+    }
+
+    private void addSongToFavorites(Song selectedSong) {
+
+        boolean added = favoritesService.addFavorite(selectedSong.id());
+
+        if(added) {
+            statusBar.setForeground(new Color(0, 150, 0));
+            statusBar.setText("Added '" + selectedSong.title() + "' to Favorites!");
+
+            if (tabbedPane != null && favoritesPanel != null) {
+                favoritesPanel.loadFavorites();
+            }
+
+        } else {
+            statusBar.setForeground(new Color(150, 0, 0));
+            statusBar.setText("Song '" + selectedSong.title() + "' is already in Favorites!");
+        }
+
+    }
+
+    private void removeSongFromFavorites(Song selectedSong) {
+
+        statusBar.setForeground(new Color(150, 100, 0));
+        statusBar.setText("Song '" + selectedSong.title() + "' was removed from Favorites");
+        favoritesService.removeFavorite(selectedSong.id());
+
+        if (tabbedPane != null && favoritesPanel != null) {
+            favoritesPanel.loadFavorites();
+        }
+
     }
 
 }

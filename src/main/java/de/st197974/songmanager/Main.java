@@ -1,10 +1,8 @@
 package de.st197974.songmanager;
 
-import de.st197974.songmanager.repository.PlaylistRepository;
-import de.st197974.songmanager.repository.SQLitePlaylistRepository;
-import de.st197974.songmanager.repository.SQLiteSongRepository;
-import de.st197974.songmanager.repository.SongRepository;
+import de.st197974.songmanager.repository.*;
 import de.st197974.songmanager.service.DiscographyService;
+import de.st197974.songmanager.service.FavoritesService;
 import de.st197974.songmanager.service.PlaylistService;
 import de.st197974.songmanager.ui.SongManagerUI;
 
@@ -16,11 +14,12 @@ public class Main {
 
         SongRepository songRepository = new SQLiteSongRepository();
         PlaylistRepository playlistRepository = new SQLitePlaylistRepository();
+        FavoritesRepository favoritesRepository = new SQLiteFavoritesRepository();
         DiscographyService discographyService = new DiscographyService(songRepository);
         PlaylistService playlistService = new PlaylistService(playlistRepository);
+        FavoritesService favoritesService = new FavoritesService(favoritesRepository, discographyService);
 
-
-        SwingUtilities.invokeLater(() -> new SongManagerUI(discographyService, playlistService));
+        SwingUtilities.invokeLater(() -> new SongManagerUI(discographyService, playlistService, favoritesService));
 
     }
 
