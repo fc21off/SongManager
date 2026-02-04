@@ -7,7 +7,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SQLiteFavoritesRepository implements FavoritesRepository{
+public class SQLiteFavoritesRepository implements FavoritesRepository {
 
     private static final Logger logger = LogManager.getLogger(SQLiteFavoritesRepository.class);
     private static final String URL = "jdbc:sqlite:songs.db";

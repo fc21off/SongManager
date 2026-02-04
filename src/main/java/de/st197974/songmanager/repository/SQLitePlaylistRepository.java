@@ -9,7 +9,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SQLitePlaylistRepository implements PlaylistRepository{
+public class SQLitePlaylistRepository implements PlaylistRepository {
 
     private static final Logger logger = LogManager.getLogger(SQLitePlaylistRepository.class);
     private static final String URL = "jdbc:sqlite:songs.db";

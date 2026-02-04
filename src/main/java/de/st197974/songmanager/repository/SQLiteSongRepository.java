@@ -18,48 +18,48 @@ public class SQLiteSongRepository implements SongRepository {
 
 
         String sqlSongs = """
-        CREATE TABLE IF NOT EXISTS songs (
-            id TEXT PRIMARY KEY,
-            title TEXT NOT NULL,
-            artist TEXT NOT NULL,
-            album TEXT,
-            duration INTEGER
-        );
-        """;
+                CREATE TABLE IF NOT EXISTS songs (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    artist TEXT NOT NULL,
+                    album TEXT,
+                    duration INTEGER
+                );
+                """;
 
         String sqlPlaylists = """
-        CREATE TABLE IF NOT EXISTS playlist (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL
-        );
-        """;
+                CREATE TABLE IF NOT EXISTS playlist (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL
+                );
+                """;
 
         String sqlPlaylistSongs = """
-        CREATE TABLE IF NOT EXISTS playlist_song (
-            playlist_id TEXT NOT NULL,
-            song_id TEXT NOT NULL,
-            PRIMARY KEY (playlist_id, song_id),
-            FOREIGN KEY (playlist_id) REFERENCES playlist(id),
-            FOREIGN KEY (song_id) REFERENCES songs(id)
-        );
-        """;
+                CREATE TABLE IF NOT EXISTS playlist_song (
+                    playlist_id TEXT NOT NULL,
+                    song_id TEXT NOT NULL,
+                    PRIMARY KEY (playlist_id, song_id),
+                    FOREIGN KEY (playlist_id) REFERENCES playlist(id),
+                    FOREIGN KEY (song_id) REFERENCES songs(id)
+                );
+                """;
 
         String sqlFavorites = """
-        CREATE TABLE IF NOT EXISTS favorites (
-            song_id TEXT PRIMARY KEY,
-            FOREIGN KEY (song_id) REFERENCES songs(id)
-        );
-        """;
+                CREATE TABLE IF NOT EXISTS favorites (
+                    song_id TEXT PRIMARY KEY,
+                    FOREIGN KEY (song_id) REFERENCES songs(id)
+                );
+                """;
 
         try (Connection conn = DriverManager.getConnection(URL);
              Statement statement = conn.createStatement()) {
 
-                statement.execute(sqlSongs);
-                statement.execute(sqlPlaylistSongs);
-                statement.execute(sqlPlaylists);
-                statement.execute(sqlFavorites);
+            statement.execute(sqlSongs);
+            statement.execute(sqlPlaylistSongs);
+            statement.execute(sqlPlaylists);
+            statement.execute(sqlFavorites);
 
-                logger.info("SQLite tables initialized");
+            logger.info("SQLite tables initialized");
 
         } catch (SQLException e) {
             logger.error("Error while starting SQLite Database", e);

@@ -5,111 +5,136 @@ import de.st197974.songmanager.model.Song;
 import de.st197974.songmanager.service.DiscographyService;
 import de.st197974.songmanager.service.FavoritesService;
 import de.st197974.songmanager.service.PlaylistService;
+import de.st197974.songmanager.service.StatsService;
 import de.st197974.songmanager.ui.panels.FavoritesPanel;
 import de.st197974.songmanager.ui.panels.PlaylistPanel;
+import de.st197974.songmanager.ui.panels.StatsPanel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.swing.*;
 import javax.swing.border.Border;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
-import java.awt.event.ActionEvent;
+import java.awt.event.*;
 import java.util.Comparator;
 import java.util.List;
 
 public class SongManagerUI extends JFrame {
-
     private static final Logger logger = LogManager.getLogger(SongManagerUI.class);
+
+    private final Color ACCENT_COLOR = new Color(97, 182, 255);
+    private final Color BG_COLOR = new Color(245, 245, 247);
+    private final Color SIDEBAR_COLOR = new Color(255, 255, 255);
+    private final Font MAIN_FONT = new Font("SansSerif", Font.PLAIN, 13);
 
     private final DiscographyService discographyService;
     private final PlaylistService playlistService;
     private final FavoritesService favoritesService;
+    private final StatsService statsService;
 
     private final DefaultListModel<String> artistModel = new DefaultListModel<>();
     private final DefaultListModel<Song> songModel = new DefaultListModel<>();
 
     private JTabbedPane tabbedPane;
-
     private PlaylistPanel playlistPanel;
     private FavoritesPanel favoritesPanel;
+    private StatsPanel statsPanel;
 
     private final Song EMPTY_SONG_PLACEHOLDER = new Song("null", "No Songs found...", "", "", 0);
-
-    private final JLabel statusBar = new JLabel();
-
+    private final JLabel statusBar = new JLabel("Ready");
     private JList<String> artistList;
     private JList<Song> songList;
     private JTextField songSearchField;
+    private JTextField artistSearchField;
 
-    public SongManagerUI(DiscographyService discographyService, PlaylistService playlistService, FavoritesService favoritesService) {
+    public SongManagerUI(DiscographyService discographyService, PlaylistService playlistService, FavoritesService favoritesService, StatsService statsService) {
         this.discographyService = discographyService;
         this.playlistService = playlistService;
         this.favoritesService = favoritesService;
+        this.statsService = statsService;
 
-        setTitle("SongManager 2.0");
-        setSize(750, 860);
+        setTitle("SongManager 3.0");
+        setSize(1000, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        getContentPane().setBackground(BG_COLOR);
         setLayout(new BorderLayout());
-        setResizable(false);
 
-        buildTop();
         buildCenter();
         buildBottom();
 
         loadArtists(null);
-
         setVisible(true);
     }
 
-    private void buildTop() {
-        JPanel searchPanel = new JPanel(new BorderLayout());
-        JTextField searchField = new JTextField();
-        silenceBackspace(searchField);
-
-        searchPanel.add(new JLabel(" Search Artist: "), BorderLayout.WEST);
-        searchPanel.add(searchField, BorderLayout.CENTER);
-
-        addSearchListener(searchField, () -> filterArtists(searchField.getText().trim()));
-
-        add(searchPanel, BorderLayout.NORTH);
-    }
-
     private void buildCenter() {
+        tabbedPane = new JTabbedPane();
+        tabbedPane.setFont(new Font("SansSerif", Font.BOLD, 12));
+
         artistList = new JList<>(artistModel);
+        artistList.setBackground(SIDEBAR_COLOR);
+        artistList.setFixedCellHeight(30);
+        artistList.setBorder(new EmptyBorder(5, 5, 5, 5));
+
         songList = new JList<>(songModel);
-
-        songList.setCellRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-                                                          boolean isSelected, boolean cellHasFocus) {
-                JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value instanceof Song song) {
-                    boolean isFav = favoritesService.isFavorite(song.id());
-                    String favoriteStar = isFav ? " <span style='color: #FFAE00;'><b>★</b></span>" : "";
-
-                    String albumInfo = (song.album() == null || song.album().isBlank())
-                            ? favoriteStar
-                            : " <font color='gray'>(" + song.album() + ")</font>" + favoriteStar;
-
-                    label.setText("<html><table width='480'>" +
-                            "<tr>" +
-                            "<td align='left'>" +
-                            song.title() + " <b>– " + song.artist() + "</b>" + albumInfo +
-                            "</td>" +
-                            "<td align='right' style='padding-right:10px;'><b>" + song.formatTime(song.durationInSeconds()) + "</b></td>" +
-                            "</tr>" +
-                            "</table></html>");
-                }
-                return label;
-            }
-        });
-
-        artistList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        songList.setFixedCellHeight(50);
+        songList.setCellRenderer(createModernSongRenderer());
 
         playlistPanel = new PlaylistPanel(discographyService.repository(), playlistService);
         favoritesPanel = new FavoritesPanel(favoritesService);
+        statsPanel = new StatsPanel(statsService);
+
+        JPanel sidebar = new JPanel(new BorderLayout());
+        sidebar.setBackground(SIDEBAR_COLOR);
+        artistSearchField = createStyledTextField(" Search Artist...");
+
+        JPanel searchWrapper = new JPanel(new BorderLayout());
+        searchWrapper.setOpaque(false);
+        searchWrapper.setBorder(new EmptyBorder(10, 10, 10, 10));
+        searchWrapper.add(artistSearchField, BorderLayout.CENTER);
+
+        sidebar.add(searchWrapper, BorderLayout.NORTH);
+        sidebar.add(new JScrollPane(artistList), BorderLayout.CENTER);
+
+        JPanel mainContent = new JPanel(new BorderLayout());
+        mainContent.setBackground(Color.WHITE);
+
+        JPanel songHeader = new JPanel(new BorderLayout(10, 10));
+        songHeader.setBackground(Color.WHITE);
+        songHeader.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        songSearchField = createStyledTextField(" Songtitle or Album...");
+        songHeader.add(songSearchField, BorderLayout.CENTER);
+
+        JPanel sortActions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        sortActions.setOpaque(false);
+        sortActions.add(createIconButton("Sort A-Z", _ -> sortSongsAlphabetically(artistList.getSelectedValue())));
+        sortActions.add(createIconButton("Album", _ -> sortSongsByAlbum()));
+        sortActions.add(createIconButton("Duration", _ -> sortSongsByDuration()));
+
+        mainContent.add(songHeader, BorderLayout.NORTH);
+        mainContent.add(new JScrollPane(songList), BorderLayout.CENTER);
+        mainContent.add(sortActions, BorderLayout.SOUTH);
+
+        JSplitPane librarySplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, sidebar, mainContent);
+        librarySplit.setDividerLocation(250);
+        librarySplit.setDividerSize(1);
+        librarySplit.setBorder(null);
+
+        addStyledTab(" Library", librarySplit);
+        addStyledTab("  Playlists  ", playlistPanel);
+        addStyledTab("  Favorites  ", favoritesPanel);
+        addStyledTab("  Statistics  ", statsPanel);
+
+        tabbedPane.addChangeListener(e -> refreshTabData());
+
+        tabbedPane.setTabPlacement(JTabbedPane.TOP);
+        tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
+        tabbedPane.setFocusable(false);
+        tabbedPane.setBorder(new EmptyBorder(10, 10, 0, 10));
 
         artistList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -117,94 +142,145 @@ public class SongManagerUI extends JFrame {
                 if (artist != null) loadSongs(artist);
             }
         });
-
-        songSearchField = new JTextField();
-        silenceBackspace(songSearchField);
+        addSearchListener(artistSearchField, () -> filterArtists(artistSearchField.getText().trim()));
         addSearchListener(songSearchField, () -> filterSongs(songSearchField.getText().trim()));
-
-        JPanel rightPanel = new JPanel(new BorderLayout());
-
-        JPanel songSearchPanel = new JPanel(new BorderLayout(5, 5));
-        songSearchPanel.add(new JLabel("Search Song:"), BorderLayout.WEST);
-        songSearchPanel.add(songSearchField, BorderLayout.CENTER);
-        songSearchPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-
-        JButton sortByAlbumButton = new JButton("Sort by Album");
-        sortByAlbumButton.addActionListener(_ -> sortSongsByAlbum());
-        JButton sortByDurationButton = new JButton("Sort by Duration");
-        sortByDurationButton.addActionListener(_ -> sortSongsByDuration());
-        JButton sortAlphabeticallyButton = new JButton("Sort Alphabetically");
-        sortAlphabeticallyButton.addActionListener(_ -> sortSongsAlphabetically((artistList.getSelectedValue() != null) ? artistList.getSelectedValue() : null));
-
-        JPanel buttonPanel = new JPanel(new GridLayout(1, 3, 5, 5));
-        buttonPanel.add(sortByAlbumButton);
-        buttonPanel.add(sortByDurationButton);
-        buttonPanel.add(sortAlphabeticallyButton);
-
-        statusBar.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-        statusBar.setHorizontalAlignment(SwingConstants.CENTER);
-
-        JPanel mainControlPanel = new JPanel(new BorderLayout(5, 5));
-        mainControlPanel.add(buttonPanel, BorderLayout.CENTER);
-        mainControlPanel.add(statusBar, BorderLayout.SOUTH);
-        mainControlPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-
-        rightPanel.add(songSearchPanel, BorderLayout.NORTH);
-        rightPanel.add(new JScrollPane(songList), BorderLayout.CENTER);
-        rightPanel.add(mainControlPanel, BorderLayout.SOUTH);
-
-        JSplitPane librarySplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, new JScrollPane(artistList), rightPanel);
-        librarySplitPane.setDividerLocation(220);
-
-        tabbedPane = new JTabbedPane();
-
-        tabbedPane.addTab("Library", librarySplitPane);
-        tabbedPane.addTab("Playlists", playlistPanel);
-        tabbedPane.addTab("Favorites", favoritesPanel);
-
-        tabbedPane.addChangeListener(e -> {
-
-            if (tabbedPane.getSelectedIndex() == 1) {
-
-                playlistPanel.loadPlaylists();
-                logger.info("Reloaded Playlist Data");
-            }
-        });
-
 
         add(tabbedPane, BorderLayout.CENTER);
     }
 
     private void buildBottom() {
+        JPanel footer = new JPanel(new BorderLayout());
+        footer.setBackground(Color.WHITE);
+        footer.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 220, 220)));
 
-        Border line = BorderFactory.createLineBorder(new Color(120, 120, 120), 1);
-        Border padding = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+        JPanel actionButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
+        actionButtons.setOpaque(false);
 
-        JButton addButton = new JButton("Add Song");
-        JButton deleteButton = new JButton("Delete Song");
-        JButton infoButton = new JButton("Song Info");
-        JButton editButton = new JButton("Edit Song");
+        actionButtons.add(createPrimaryButton("Add Song", _ -> showSongForm(null)));
+        actionButtons.add(createSecondaryButton("Song Info", _ -> showSongInfo()));
+        actionButtons.add(createSecondaryButton("Edit Song", _ -> editSelectedSong()));
+        actionButtons.add(createSecondaryButton("Delete Song", _ -> deleteSelectedSong()));
 
-        addButton.addActionListener(_ -> showSongForm(null));
-        deleteButton.addActionListener(_ -> deleteSelectedSong());
-        infoButton.addActionListener(_ -> showSongInfo());
-        editButton.addActionListener(_ -> editSelectedSong());
+        statusBar.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        statusBar.setBorder(new EmptyBorder(0, 20, 0, 40));
 
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setBorder(BorderFactory.createCompoundBorder(line, padding));
-
-        buttonPanel.add(addButton);
-        buttonPanel.add(infoButton);
-        buttonPanel.add(editButton);
-        buttonPanel.add(deleteButton);
-
-        JPanel bottom = new JPanel();
-        bottom.setLayout(new BoxLayout(bottom, BoxLayout.Y_AXIS));
-        bottom.add(buttonPanel);
-
-        add(bottom, BorderLayout.SOUTH);
+        footer.add(actionButtons, BorderLayout.WEST);
+        footer.add(statusBar, BorderLayout.EAST);
+        add(footer, BorderLayout.SOUTH);
 
         setupSongListContextMenu();
+    }
+
+    private JTextField createStyledTextField(String placeholder) {
+        JTextField field = new JTextField();
+        field.setPreferredSize(new Dimension(100, 40));
+        field.setBackground(new Color(238, 238, 240));
+        field.setFont(new Font("SansSerif", Font.PLAIN, 13));
+
+        Border normalBorder = BorderFactory.createCompoundBorder(
+                new LineBorder(new Color(200, 200, 200), 1),
+                new EmptyBorder(5, 12, 5, 12)
+        );
+
+        Border focusBorder = BorderFactory.createCompoundBorder(
+                new LineBorder(ACCENT_COLOR, 2),
+                new EmptyBorder(4, 11, 4, 11)
+        );
+
+        field.setBorder(normalBorder);
+
+        field.addFocusListener(new FocusAdapter() {
+            public void focusGained(FocusEvent e) {
+                field.setBorder(focusBorder);
+                field.setBackground(Color.WHITE);
+            }
+
+            public void focusLost(FocusEvent e) {
+                field.setBorder(normalBorder);
+                field.setBackground(new Color(238, 238, 240));
+            }
+        });
+
+        return field;
+    }
+
+    private JButton createPrimaryButton(String text, ActionListener listener) {
+        JButton btn = new JButton(text);
+        btn.setBackground(ACCENT_COLOR);
+        btn.setForeground(Color.WHITE);
+        btn.setFocusPainted(false);
+        btn.setFont(new Font("SansSerif", Font.BOLD, 12));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.addActionListener(listener);
+        return btn;
+    }
+
+    private JButton createSecondaryButton(String text, ActionListener listener) {
+        JButton btn = new JButton(text);
+        btn.setBackground(Color.WHITE);
+        btn.setFocusPainted(false);
+        btn.addActionListener(listener);
+        return btn;
+    }
+
+    private JButton createIconButton(String text, ActionListener listener) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        btn.setMargin(new Insets(2, 8, 2, 8));
+        btn.addActionListener(listener);
+        return btn;
+    }
+
+    private DefaultListCellRenderer createModernSongRenderer() {
+        return new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                JPanel itemPanel = new JPanel(new BorderLayout(15, 0));
+                itemPanel.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)),
+                        BorderFactory.createEmptyBorder(5, 15, 5, 15)
+                ));
+                itemPanel.setBackground(isSelected ? new Color(199, 221, 253) : Color.WHITE);
+
+                if (value instanceof Song song) {
+                    JLabel titleLabel = new JLabel("<html><b>" + song.title() + "</b><br><font color='gray'>" + song.artist() + (song.album().isEmpty() ? "" : " • " + song.album()) + "</font></html>");
+                    titleLabel.setFont(MAIN_FONT);
+
+                    boolean isFav = favoritesService.isFavorite(song.id());
+                    JLabel rightLabel = new JLabel((isFav ? "★ " : "") + song.formatTime(song.durationInSeconds()));
+                    rightLabel.setFont(new Font("Monospaced", Font.BOLD, 12));
+                    rightLabel.setForeground(isFav ? new Color(255, 174, 0) : Color.DARK_GRAY);
+
+                    itemPanel.add(titleLabel, BorderLayout.CENTER);
+                    itemPanel.add(rightLabel, BorderLayout.EAST);
+                }
+                return itemPanel;
+            }
+        };
+    }
+
+    private void refreshTabData() {
+        int idx = tabbedPane.getSelectedIndex();
+
+        statusBar.setVisible(idx == 0);
+
+        switch (idx) {
+            case 1 -> playlistPanel.loadPlaylists();
+            case 2 -> favoritesPanel.loadFavorites();
+            case 3 -> statsPanel.loadStatistics();
+        }
+        logger.info("Tab {} reloaded", idx);
+    }
+
+    private void addStyledTab(String title, JComponent panel) {
+        tabbedPane.addTab(null, panel);
+        int index = tabbedPane.getTabCount() - 1;
+
+        JLabel lbl = new JLabel(title);
+        lbl.setFont(new Font("SansSerif", Font.BOLD, 12));
+        lbl.setBorder(new EmptyBorder(8, 15, 8, 15));
+
+        tabbedPane.setTabComponentAt(index, lbl);
     }
 
 
@@ -273,13 +349,15 @@ public class SongManagerUI extends JFrame {
     private void showSongInfo() {
         Song s;
 
-        if(tabbedPane != null && tabbedPane.getSelectedIndex() == 1) {
+        if (tabbedPane != null && tabbedPane.getSelectedIndex() == 1) {
             s = playlistPanel.getSelectedSong();
+        } else if (tabbedPane != null && tabbedPane.getSelectedIndex() == 2) {
+            s = favoritesPanel.getSelectedFavorite();
         } else {
             s = songList.getSelectedValue();
         }
 
-        if(s == null || s == EMPTY_SONG_PLACEHOLDER) {
+        if (s == null || s == EMPTY_SONG_PLACEHOLDER) {
             JOptionPane.showMessageDialog(this, "Select a song first!");
             return;
         }
@@ -341,7 +419,7 @@ public class SongManagerUI extends JFrame {
 
     private void editSelectedSong() {
 
-        if (tabbedPane != null && (tabbedPane.getSelectedIndex() == 1 || tabbedPane.getSelectedIndex() == 2)) {
+        if (tabbedPane != null && tabbedPane.getSelectedIndex() >= 1) {
             JOptionPane.showMessageDialog(this,
                     "Unable to EDIT here!\n" +
                             "Please switch to 'Library' to manage the main library.",
@@ -360,7 +438,7 @@ public class SongManagerUI extends JFrame {
 
     private void deleteSelectedSong() {
 
-        if (tabbedPane != null && (tabbedPane.getSelectedIndex() == 1 || tabbedPane.getSelectedIndex() == 2)) {
+        if (tabbedPane != null && tabbedPane.getSelectedIndex() >= 1) {
             JOptionPane.showMessageDialog(this,
                     "Unable to DELETE here!\n" +
                             "Please switch to 'Library' to manage the main library.",
@@ -519,14 +597,19 @@ public class SongManagerUI extends JFrame {
                 }
             }
 
-            @Override public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {}
-            @Override public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) {}
+            @Override
+            public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {
+            }
+
+            @Override
+            public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) {
+            }
         });
 
         songList.setComponentPopupMenu(popupMenu);
 
-        songList.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mousePressed(java.awt.event.MouseEvent e) {
+        songList.addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent e) {
                 if (SwingUtilities.isRightMouseButton(e)) {
                     int row = songList.locationToIndex(e.getPoint());
                     if (row != -1) {
@@ -561,7 +644,7 @@ public class SongManagerUI extends JFrame {
             if (selected != null) {
                 boolean added = playlistService.addSongToPlaylist(selected.id(), song.id());
 
-                if(added) {
+                if (added) {
                     if (playlistPanel != null) {
                         playlistPanel.loadPlaylists();
                     }
@@ -580,7 +663,7 @@ public class SongManagerUI extends JFrame {
 
         boolean added = favoritesService.addFavorite(selectedSong.id());
 
-        if(added) {
+        if (added) {
             statusBar.setForeground(new Color(0, 150, 0));
             statusBar.setText("Added '" + selectedSong.title() + "' to Favorites!");
 

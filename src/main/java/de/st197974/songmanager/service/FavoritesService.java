@@ -5,6 +5,7 @@ import de.st197974.songmanager.repository.FavoritesRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -62,7 +63,7 @@ public record FavoritesService(FavoritesRepository repository, DiscographyServic
     public List<Song> getAllFavorites() {
         return repository.getAllFavoriteIds().stream()
                 .map(service::getSongById)
-                .filter(Objects::nonNull) // Falls ID im Repository existiert, aber Song gelöscht wurde
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -72,6 +73,24 @@ public record FavoritesService(FavoritesRepository repository, DiscographyServic
         } else {
             addFavorite(songId);
         }
+    }
+
+    public List<Song> getFavoritesSortedAlphabetically() {
+        return getAllFavorites().stream()
+                .sorted(Comparator.comparing(Song::title, String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.toList());
+    }
+
+    public List<Song> getFavoritesSortedByArtist() {
+        return getAllFavorites().stream()
+                .sorted(Comparator.comparing(Song::artist, String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.toList());
+    }
+
+    public List<Song> getFavoritesSortedByDuration() {
+        return getAllFavorites().stream()
+                .sorted(Comparator.comparingInt(Song::durationInSeconds))
+                .collect(Collectors.toList());
     }
 
 }
