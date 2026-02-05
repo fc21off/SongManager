@@ -101,10 +101,7 @@ public class FavoritesPanel extends JPanel {
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JPanel itemPanel = new JPanel(new BorderLayout(15, 0));
                 itemPanel.setBackground(isSelected ? new Color(199, 221, 253) : Color.WHITE);
-                itemPanel.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)),
-                        BorderFactory.createEmptyBorder(5, 15, 5, 15)
-                ));
+                itemPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)), BorderFactory.createEmptyBorder(5, 15, 5, 15)));
 
                 if (value instanceof Song song) {
                     JLabel titleLabel = new JLabel("<html><span style='color: #FFAE00;'>★</span> <b>" + song.title() + "</b></html>");
@@ -191,9 +188,7 @@ public class FavoritesPanel extends JPanel {
     private void removeFavorite() {
         Song selected = favoriteList.getSelectedValue();
         if (selected != null) {
-            int confirm = JOptionPane.showConfirmDialog(this,
-                    "Remove '" + selected.title() + "' from favorites?",
-                    "Confirm Removal", JOptionPane.YES_NO_OPTION);
+            int confirm = JOptionPane.showConfirmDialog(this, "Remove '" + selected.title() + "' from favorites?", "Confirm Removal", JOptionPane.YES_NO_OPTION);
 
             if (confirm == JOptionPane.YES_OPTION) {
                 favoritesService.removeFavorite(selected.id());

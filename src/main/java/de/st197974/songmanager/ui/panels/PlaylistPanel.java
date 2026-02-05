@@ -119,10 +119,7 @@ public class PlaylistPanel extends JPanel {
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
 
-                label.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)),
-                        BorderFactory.createEmptyBorder(5, 15, 5, 15)
-                ));
+                label.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)), BorderFactory.createEmptyBorder(5, 15, 5, 15)));
 
                 if (value instanceof String artist) {
                     label.setText(artist);
@@ -144,9 +141,7 @@ public class PlaylistPanel extends JPanel {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JPanel p = new JPanel(new BorderLayout());
-                p.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)),
-                        new EmptyBorder(5, 20, 5, 20)));
+                p.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)), new EmptyBorder(5, 20, 5, 20)));
                 p.setBackground(isSelected ? new Color(199, 221, 253) : Color.WHITE);
 
                 if (value instanceof Song s) {

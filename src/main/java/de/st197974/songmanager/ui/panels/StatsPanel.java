@@ -64,6 +64,10 @@ public class StatsPanel extends JPanel {
         cardsPanel.add(createStatCard("Total Duration", duration));
         cardsPanel.add(createStatCard("Ø Duration", avg));
 
+        int totalFavorites = service.getTotalFavorites();
+        int favoritePercentage = total > 0 ? (int) ((totalFavorites * 100) / total) : 0;
+        cardsPanel.add(createStatCard("Favorites", favoritePercentage + "% (" + totalFavorites + ")"));
+
         Map<String, Long> songsPerArtist = service.getSongsPerArtist();
         songsPerArtist.forEach((artist, count) -> artistListPanel.add(createArtistRow(artist, count, total)));
 
@@ -74,10 +78,7 @@ public class StatsPanel extends JPanel {
     private JPanel createStatCard(String title, String value) {
         JPanel card = new JPanel(new BorderLayout());
         card.setBackground(Color.WHITE);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(220, 220, 220), 1),
-                new EmptyBorder(15, 15, 15, 15)
-        ));
+        card.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(new Color(220, 220, 220), 1), new EmptyBorder(15, 15, 15, 15)));
 
         JLabel lblTitle = new JLabel(title);
         lblTitle.setForeground(Color.GRAY);
@@ -96,10 +97,7 @@ public class StatsPanel extends JPanel {
         JPanel row = new JPanel(new BorderLayout());
         row.setBackground(Color.WHITE);
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
-        row.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(240, 240, 240)),
-                new EmptyBorder(10, 15, 10, 15)
-        ));
+        row.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(240, 240, 240)), new EmptyBorder(10, 15, 10, 15)));
 
         JLabel nameLabel = new JLabel(name);
         nameLabel.setFont(new Font("SansSerif", Font.BOLD, 14));

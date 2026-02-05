@@ -20,7 +20,7 @@ public class Main {
         DiscographyService discographyService = new DiscographyService(songRepository);
         PlaylistService playlistService = new PlaylistService(playlistRepository);
         FavoritesService favoritesService = new FavoritesService(favoritesRepository, discographyService);
-        StatsService statsService = new StatsService(discographyService);
+        StatsService statsService = new StatsService(discographyService, favoritesService);
 
         SwingUtilities.invokeLater(() -> new SongManagerUI(discographyService, playlistService, favoritesService, statsService));
 

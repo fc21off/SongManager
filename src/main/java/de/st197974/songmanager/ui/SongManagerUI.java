@@ -7,6 +7,7 @@ import de.st197974.songmanager.service.DiscographyService;
 import de.st197974.songmanager.service.FavoritesService;
 import de.st197974.songmanager.service.PlaylistService;
 import de.st197974.songmanager.service.StatsService;
+import de.st197974.songmanager.ui.panels.MultiEditPanel;
 import de.st197974.songmanager.ui.panels.FavoritesPanel;
 import de.st197974.songmanager.ui.panels.PlaylistPanel;
 import de.st197974.songmanager.ui.panels.StatsPanel;
@@ -42,6 +43,7 @@ public class SongManagerUI extends JFrame {
     private JTabbedPane tabbedPane;
     private PlaylistPanel playlistPanel;
     private FavoritesPanel favoritesPanel;
+    private MultiEditPanel multiEditPanel;
     private StatsPanel statsPanel;
 
     private final Song EMPTY_SONG_PLACEHOLDER = new Song("null", "No Songs found...", "", "", 0);
@@ -97,6 +99,7 @@ public class SongManagerUI extends JFrame {
 
         playlistPanel = new PlaylistPanel(discographyService.repository(), playlistService);
         favoritesPanel = new FavoritesPanel(favoritesService);
+        multiEditPanel = new MultiEditPanel(discographyService);
         statsPanel = new StatsPanel(statsService);
 
         JPanel sidebar = new JPanel(new BorderLayout());
@@ -138,9 +141,10 @@ public class SongManagerUI extends JFrame {
         librarySplit.setDividerSize(1);
         librarySplit.setBackground(new Color(220, 220, 220));
 
-        addStyledTab(" Library", librarySplit);
+        addStyledTab("  Library", librarySplit);
         addStyledTab("  Playlists  ", playlistPanel);
         addStyledTab("  Favorites  ", favoritesPanel);
+        addStyledTab("  Multi Edit  ", multiEditPanel);
         addStyledTab("  Statistics  ", statsPanel);
 
         tabbedPane.addChangeListener(_ -> refreshTabData());
@@ -161,6 +165,7 @@ public class SongManagerUI extends JFrame {
         addSearchListener(songSearchField, () -> filterSongs(songSearchField.getText().trim()));
 
         add(tabbedPane, BorderLayout.CENTER);
+        refreshTabData();
     }
 
     private void buildBottom() {
@@ -192,15 +197,9 @@ public class SongManagerUI extends JFrame {
         field.setBackground(new Color(238, 238, 240));
         field.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
-        Border normalBorder = BorderFactory.createCompoundBorder(
-                new LineBorder(new Color(200, 200, 200), 1),
-                new EmptyBorder(5, 12, 5, 12)
-        );
+        Border normalBorder = BorderFactory.createCompoundBorder(new LineBorder(new Color(200, 200, 200), 1), new EmptyBorder(5, 12, 5, 12));
 
-        Border focusBorder = BorderFactory.createCompoundBorder(
-                new LineBorder(ACCENT_COLOR, 2),
-                new EmptyBorder(4, 11, 4, 11)
-        );
+        Border focusBorder = BorderFactory.createCompoundBorder(new LineBorder(ACCENT_COLOR, 2), new EmptyBorder(4, 11, 4, 11));
 
         field.setBorder(normalBorder);
 
@@ -271,10 +270,7 @@ public class SongManagerUI extends JFrame {
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
 
-                label.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)),
-                        BorderFactory.createEmptyBorder(5, 15, 5, 15)
-                ));
+                label.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)), BorderFactory.createEmptyBorder(5, 15, 5, 15)));
 
                 if (value instanceof String artist) {
                     label.setText(artist);
@@ -297,10 +293,7 @@ public class SongManagerUI extends JFrame {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JPanel itemPanel = new JPanel(new BorderLayout(15, 0));
-                itemPanel.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)),
-                        BorderFactory.createEmptyBorder(5, 15, 5, 15)
-                ));
+                itemPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)), BorderFactory.createEmptyBorder(5, 15, 5, 15)));
                 itemPanel.setBackground(isSelected ? new Color(199, 221, 253) : Color.WHITE);
 
                 if (value instanceof Song song) {
@@ -326,9 +319,22 @@ public class SongManagerUI extends JFrame {
         statusBar.setVisible(idx == 0);
 
         switch (idx) {
-            case 1 -> playlistPanel.loadPlaylists();
-            case 2 -> favoritesPanel.loadFavorites();
-            case 3 -> statsPanel.loadStatistics();
+            case 0 -> {
+                String lastSelected = artistList.getSelectedValue();
+                loadArtists(lastSelected);
+            }
+            case 1 -> {
+                if (playlistPanel != null) playlistPanel.loadPlaylists();
+            }
+            case 2 -> {
+                if (favoritesPanel != null) favoritesPanel.loadFavorites();
+            }
+            case 3 -> {
+                if (multiEditPanel != null) multiEditPanel.loadAllSongs();
+            }
+            case 4 -> {
+                if (statsPanel != null) statsPanel.loadStatistics();
+            }
         }
     }
 
@@ -435,13 +441,7 @@ public class SongManagerUI extends JFrame {
             return;
         }
 
-        JOptionPane.showMessageDialog(this,
-                "Title: " + s.title() +
-                        "\nArtist: " + s.artist() +
-                        "\nAlbum: " + s.album() +
-                        "\nDuration: " + s.formatTime(s.durationInSeconds()) + " (" + s.durationInSeconds() + "s)",
-                "Song Info",
-                JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, "Title: " + s.title() + "\nArtist: " + s.artist() + "\nAlbum: " + s.album() + "\nDuration: " + s.formatTime(s.durationInSeconds()) + " (" + s.durationInSeconds() + "s)", "Song Info", JOptionPane.INFORMATION_MESSAGE);
 
     }
 
@@ -493,11 +493,7 @@ public class SongManagerUI extends JFrame {
     private void editSelectedSong() {
 
         if (tabbedPane != null && tabbedPane.getSelectedIndex() >= 1) {
-            JOptionPane.showMessageDialog(this,
-                    "Unable to EDIT here!\n" +
-                            "Please switch to 'Library' to manage the main library.",
-                    "Action Not Allowed",
-                    JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Unable to EDIT here!\n" + "Please switch to 'Library' to manage the main library.", "Action Not Allowed", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -512,11 +508,7 @@ public class SongManagerUI extends JFrame {
     private void deleteSelectedSong() {
 
         if (tabbedPane != null && tabbedPane.getSelectedIndex() >= 1) {
-            JOptionPane.showMessageDialog(this,
-                    "Unable to DELETE here!\n" +
-                            "Please switch to 'Library' to manage the main library.",
-                    "Action Not Allowed",
-                    JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Unable to DELETE here!\n" + "Please switch to 'Library' to manage the main library.", "Action Not Allowed", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -709,8 +701,7 @@ public class SongManagerUI extends JFrame {
         JComboBox<Playlist> playlistCombo = new JComboBox<>(playlistArray);
         panel.add(playlistCombo, BorderLayout.CENTER);
 
-        int result = JOptionPane.showConfirmDialog(this, panel,
-                "Select Playlist", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        int result = JOptionPane.showConfirmDialog(this, panel, "Select Playlist", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
         if (result == JOptionPane.OK_OPTION) {
             Playlist selected = (Playlist) playlistCombo.getSelectedItem();

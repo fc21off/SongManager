@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public record StatsService(DiscographyService discographyService) {
+public record StatsService(DiscographyService discographyService, FavoritesService favoritesService) {
 
     public List<Song> getAllSongs() {
         return discographyService.getAll();
@@ -32,5 +32,10 @@ public record StatsService(DiscographyService discographyService) {
         if (all.isEmpty()) return 0;
         return getTotalDuration() / all.size();
     }
+
+    public int getTotalFavorites() {
+        return favoritesService.getAllFavorites().size();
+    }
+
 
 }
