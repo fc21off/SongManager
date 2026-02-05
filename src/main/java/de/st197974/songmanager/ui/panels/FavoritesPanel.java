@@ -1,5 +1,6 @@
 package de.st197974.songmanager.ui.panels;
 
+import com.formdev.flatlaf.FlatLightLaf;
 import de.st197974.songmanager.model.Song;
 import de.st197974.songmanager.service.FavoritesService;
 
@@ -7,6 +8,8 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
 
 public class FavoritesPanel extends JPanel {
@@ -15,13 +18,19 @@ public class FavoritesPanel extends JPanel {
     private final DefaultListModel<Song> favoriteModel = new DefaultListModel<>();
     private JList<Song> favoriteList;
 
-    private final Color ACCENT_COLOR = new Color(97, 182, 255);
-    private final Color BG_COLOR = new Color(245, 245, 247);
     private final Color DANGER_COLOR = new Color(255, 107, 107);
 
     public FavoritesPanel(FavoritesService favoritesService) {
+
+        try {
+            UIManager.setLookAndFeel(new FlatLightLaf());
+        } catch (Exception ex) {
+            System.err.println("Failed to initialize LaF");
+        }
+
         this.favoritesService = favoritesService;
 
+        Color BG_COLOR = new Color(245, 245, 247);
         setBackground(BG_COLOR);
         setLayout(new BorderLayout(20, 20));
         setBorder(new EmptyBorder(25, 25, 25, 25));
@@ -31,6 +40,41 @@ public class FavoritesPanel extends JPanel {
     }
 
     private void buildUI() {
+        JPanel headerPanel = getJPanel();
+
+        favoriteList = new JList<>(favoriteModel);
+        favoriteList.setFixedCellHeight(40);
+        favoriteList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        favoriteList.setBackground(Color.WHITE);
+        favoriteList.setCellRenderer(createFavoriteRenderer());
+
+        JScrollPane scrollPane = new JScrollPane(favoriteList);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(230, 230, 230)));
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        JPanel actionPanel = new JPanel(new BorderLayout());
+        actionPanel.setOpaque(false);
+        actionPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
+
+        JPanel leftActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        leftActions.setOpaque(false);
+
+        leftActions.add(createSortButton("Sort A-Z", _ -> sortSongsAlphabetically()));
+        leftActions.add(createSortButton("Sort Artist", _ -> sortSongsByArtist()));
+
+        JButton removeBtn = new JButton("Remove from Favorites");
+        styleRemoveButton(removeBtn);
+        removeBtn.addActionListener(_ -> removeFavorite());
+
+        actionPanel.add(leftActions, BorderLayout.WEST);
+        actionPanel.add(removeBtn, BorderLayout.EAST);
+
+        add(headerPanel, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
+        add(actionPanel, BorderLayout.SOUTH);
+    }
+
+    private static JPanel getJPanel() {
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
 
@@ -48,37 +92,7 @@ public class FavoritesPanel extends JPanel {
         textWrapper.add(subtitleLabel);
 
         headerPanel.add(textWrapper, BorderLayout.WEST);
-
-        favoriteList = new JList<>(favoriteModel);
-        favoriteList.setFixedCellHeight(50);
-        favoriteList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        favoriteList.setBackground(Color.WHITE);
-        favoriteList.setCellRenderer(createFavoriteRenderer());
-
-        JScrollPane scrollPane = new JScrollPane(favoriteList);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(230, 230, 230)));
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-
-        JPanel actionPanel = new JPanel(new BorderLayout());
-        actionPanel.setOpaque(false);
-        actionPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
-
-        JPanel leftActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        leftActions.setOpaque(false);
-
-        leftActions.add(createOtherButton("Sort A-Z", e -> sortSongsAlphabetically()));
-        leftActions.add(createOtherButton("Sort Artist", e -> sortSongsByArtist()));
-
-        JButton removeBtn = new JButton("Remove from Favorites");
-        styleRemoveButton(removeBtn);
-        removeBtn.addActionListener(e -> removeFavorite());
-
-        actionPanel.add(leftActions, BorderLayout.WEST);
-        actionPanel.add(removeBtn, BorderLayout.EAST);
-
-        add(headerPanel, BorderLayout.NORTH);
-        add(scrollPane, BorderLayout.CENTER);
-        add(actionPanel, BorderLayout.SOUTH);
+        return headerPanel;
     }
 
     private DefaultListCellRenderer createFavoriteRenderer() {
@@ -109,34 +123,62 @@ public class FavoritesPanel extends JPanel {
     }
 
     private void styleRemoveButton(JButton btn) {
+        btn.setFont(new Font("SansSerif", Font.BOLD, 13));
+        btn.setPreferredSize(new Dimension(200, 30));
         btn.setFocusPainted(false);
+        btn.setContentAreaFilled(true);
+        btn.setOpaque(true);
+
+        btn.putClientProperty("JButton.buttonType", "square");
+        btn.putClientProperty("JButton.arc", 0);
+
         btn.setBackground(Color.WHITE);
         btn.setForeground(DANGER_COLOR);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(DANGER_COLOR, 1),
-                new EmptyBorder(8, 15, 8, 15)
-        ));
+        btn.setBorder(BorderFactory.createLineBorder(DANGER_COLOR, 1));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        btn.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent e) {
+        btn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
                 btn.setBackground(DANGER_COLOR);
                 btn.setForeground(Color.WHITE);
             }
 
-            public void mouseExited(java.awt.event.MouseEvent e) {
+            @Override
+            public void mouseExited(MouseEvent e) {
                 btn.setBackground(Color.WHITE);
                 btn.setForeground(DANGER_COLOR);
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                btn.setBackground(DANGER_COLOR.darker());
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (btn.getBounds().contains(e.getPoint())) {
+                    btn.setBackground(DANGER_COLOR);
+                } else {
+                    btn.setBackground(Color.WHITE);
+                }
             }
         });
     }
 
-    private JButton createOtherButton(String text, ActionListener listener) {
-        JButton b = new JButton(text);
-        b.setBackground(Color.WHITE);
-        b.setFocusPainted(false);
-        b.addActionListener(listener);
-        return b;
+    private JButton createSortButton(String text, ActionListener listener) {
+        JButton btn = new JButton(text);
+        btn.addActionListener(listener);
+        btn.setFont(new Font("SansSerif", Font.BOLD, 13));
+        btn.setContentAreaFilled(true);
+
+        btn.setPreferredSize(new Dimension(120, 30));
+
+        btn.putClientProperty("JButton.buttonType", "square");
+        btn.putClientProperty("JButton.arc", 0);
+        btn.setFocusPainted(false);
+
+        return btn;
     }
 
     public void loadFavorites() {

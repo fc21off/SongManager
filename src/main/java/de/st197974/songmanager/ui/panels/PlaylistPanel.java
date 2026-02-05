@@ -24,6 +24,8 @@ public class PlaylistPanel extends JPanel {
     private JList<Playlist> playlistList;
     private JList<Song> songList;
 
+    private JLabel mainTitle;
+
     private final Color ACCENT_COLOR = new Color(97, 182, 255);
     private final Color BG_COLOR = new Color(245, 245, 247);
     private final Color SIDEBAR_COLOR = new Color(255, 255, 255);
@@ -79,7 +81,7 @@ public class PlaylistPanel extends JPanel {
         mainHeader.setBackground(Color.WHITE);
         mainHeader.setBorder(new EmptyBorder(15, 20, 10, 20));
 
-        JLabel mainTitle = new JLabel("Playlist Content");
+        mainTitle = new JLabel("No playlist selected...");
         mainTitle.setFont(new Font("SansSerif", Font.BOLD, 18));
 
         JPanel mainActions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -116,15 +118,22 @@ public class PlaylistPanel extends JPanel {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+
                 label.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)),
                         BorderFactory.createEmptyBorder(5, 15, 5, 15)
                 ));
-                if (value instanceof Playlist p) {
-                    label.setText(p.name());
+
+                if (value instanceof String artist) {
+                    label.setText(artist);
                 }
-                label.setBackground(isSelected ? new Color(199, 221, 253) : Color.WHITE);
+
+                label.setBackground(isSelected ? new Color(199, 221, 253) : SIDEBAR_COLOR);
                 label.setForeground(isSelected ? Color.BLACK : Color.DARK_GRAY);
+
+                label.setFont(new Font("SansSerif", Font.BOLD, 13));
+                label.setOpaque(true);
+
                 return label;
             }
         };
@@ -155,28 +164,47 @@ public class PlaylistPanel extends JPanel {
     }
 
     private JButton createPrimaryButton(String text, ActionListener listener) {
-        JButton b = new JButton(text);
-        b.setBackground(ACCENT_COLOR);
-        b.setForeground(Color.WHITE);
-        b.setFocusPainted(false);
-        b.addActionListener(listener);
-        return b;
+        JButton btn = new JButton(text);
+        btn.addActionListener(listener);
+
+        btn.putClientProperty("JButton.buttonType", "square");
+        btn.putClientProperty("JButton.arc", 0);
+
+        btn.setBackground(ACCENT_COLOR);
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("SansSerif", Font.BOLD, 13));
+
+        btn.setPreferredSize(new Dimension(220, 26));
+
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+
+        return btn;
     }
 
     private JButton createSecondaryButton(String text, ActionListener listener) {
-        JButton b = new JButton(text);
-        b.setBackground(Color.WHITE);
-        b.setFocusPainted(false);
-        b.addActionListener(listener);
-        return b;
+        JButton btn = new JButton(text);
+        btn.addActionListener(listener);
+
+        btn.setFont(new Font("SansSerif", Font.BOLD, 13));
+        btn.setPreferredSize(new Dimension(160, 26));
+
+        btn.putClientProperty("JButton.buttonType", "square");
+        btn.putClientProperty("JButton.focusWidth", 0);
+        btn.putClientProperty("JButton.arc", 0);
+
+        btn.setOpaque(true);
+        btn.setFocusPainted(false);
+
+        return btn;
     }
 
     private JButton createMiniButton(String text, ActionListener listener) {
-        JButton b = new JButton(text);
-        b.setFont(new Font("SansSerif", Font.PLAIN, 10));
-        b.setMargin(new Insets(2, 2, 2, 2));
-        b.addActionListener(listener);
-        return b;
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("SansSerif", Font.PLAIN, 10));
+        btn.setMargin(new Insets(2, 2, 2, 2));
+        btn.addActionListener(listener);
+        return btn;
     }
 
     public void loadPlaylists() {
@@ -220,6 +248,10 @@ public class PlaylistPanel extends JPanel {
             int confirm = JOptionPane.showConfirmDialog(this, "Delete playlist '" + selected.name() + "'?", "Confirm", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
                 playlistService.deletePlaylist(selected.id());
+
+                songModel.clear();
+                mainTitle.setText("No playlist selected...");
+
                 loadPlaylists();
             }
         }
