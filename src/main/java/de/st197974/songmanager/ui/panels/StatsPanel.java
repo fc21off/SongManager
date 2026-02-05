@@ -1,8 +1,10 @@
 package de.st197974.songmanager.ui.panels;
 
 import de.st197974.songmanager.service.StatsService;
+import de.st197974.songmanager.ui.AppTheme;
 
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.Map;
@@ -13,39 +15,63 @@ public class StatsPanel extends JPanel {
 
     private JPanel cardsPanel;
     private JPanel artistListPanel;
-
-    private final Color ACCENT_COLOR = new Color(70, 130, 180);
+    private JScrollPane scrollPane;
+    private JLabel listHeader;
 
     public StatsPanel(StatsService service) {
         this.service = service;
-        Color BG_COLOR = new Color(245, 245, 247);
-        setBackground(BG_COLOR);
+
         setLayout(new BorderLayout(20, 20));
         setBorder(new EmptyBorder(25, 25, 25, 25));
 
         buildUI();
+
+        updateThemeColors();
+    }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+
+        if (cardsPanel != null) {
+            updateThemeColors();
+        }
+    }
+
+    private void updateThemeColors() {
+        Color bg = AppTheme.isDark() ? UIManager.getColor("Panel.background") : new Color(245, 245, 247);
+        setBackground(bg);
+
+        if (listHeader != null) {
+            listHeader.setForeground(AppTheme.isDark() ? Color.WHITE : Color.BLACK);
+        }
+
+        if (scrollPane != null) {
+            Color borderColor = AppTheme.isDark() ? new Color(60, 60, 60) : new Color(230, 230, 230);
+            scrollPane.setBorder(BorderFactory.createLineBorder(borderColor));
+            scrollPane.getViewport().setBackground(AppTheme.isDark() ? UIManager.getColor("Panel.background") : Color.WHITE);
+        }
+
         loadStatistics();
     }
 
     private void buildUI() {
-        cardsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
+        cardsPanel = new JPanel(new GridLayout(1, 4, 20, 0));
         cardsPanel.setOpaque(false);
         add(cardsPanel, BorderLayout.NORTH);
 
         JPanel centerContainer = new JPanel(new BorderLayout());
         centerContainer.setOpaque(false);
 
-        JLabel listHeader = new JLabel("Songs per Artist");
+        listHeader = new JLabel("Songs per Artist");
         listHeader.setFont(new Font("SansSerif", Font.BOLD, 18));
         listHeader.setBorder(new EmptyBorder(0, 0, 10, 0));
         centerContainer.add(listHeader, BorderLayout.NORTH);
 
         artistListPanel = new JPanel();
         artistListPanel.setLayout(new BoxLayout(artistListPanel, BoxLayout.Y_AXIS));
-        artistListPanel.setBackground(Color.WHITE);
 
-        JScrollPane scrollPane = new JScrollPane(artistListPanel);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(230, 230, 230)));
+        scrollPane = new JScrollPane(artistListPanel);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
         centerContainer.add(scrollPane, BorderLayout.CENTER);
@@ -53,8 +79,13 @@ public class StatsPanel extends JPanel {
     }
 
     public void loadStatistics() {
+        if (cardsPanel == null || artistListPanel == null) return;
+
         cardsPanel.removeAll();
         artistListPanel.removeAll();
+
+        Color contentBg = AppTheme.isDark() ? UIManager.getColor("Panel.background") : Color.WHITE;
+        artistListPanel.setBackground(contentBg);
 
         int total = service.getTotalSongs();
         String duration = formatTime(service.getTotalDuration());
@@ -77,16 +108,20 @@ public class StatsPanel extends JPanel {
 
     private JPanel createStatCard(String title, String value) {
         JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(Color.WHITE);
-        card.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(new Color(220, 220, 220), 1), new EmptyBorder(15, 15, 15, 15)));
+
+        Color cardBg = AppTheme.isDark() ? UIManager.getColor("Table.background") : Color.WHITE;
+        Color borderColor = AppTheme.isDark() ? new Color(60, 60, 60) : new Color(220, 220, 220);
+
+        card.setBackground(cardBg);
+        card.setBorder(new CompoundBorder(BorderFactory.createLineBorder(borderColor, 1), new EmptyBorder(15, 15, 15, 15)));
 
         JLabel lblTitle = new JLabel(title);
-        lblTitle.setForeground(Color.GRAY);
+        lblTitle.setForeground(AppTheme.isDark() ? Color.LIGHT_GRAY : Color.GRAY);
         lblTitle.setFont(new Font("SansSerif", Font.PLAIN, 14));
 
         JLabel lblValue = new JLabel(value);
         lblValue.setFont(new Font("SansSerif", Font.BOLD, 22));
-        lblValue.setForeground(ACCENT_COLOR);
+        lblValue.setForeground(AppTheme.accent());
 
         card.add(lblTitle, BorderLayout.NORTH);
         card.add(lblValue, BorderLayout.SOUTH);
@@ -95,20 +130,25 @@ public class StatsPanel extends JPanel {
 
     private JPanel createArtistRow(String name, Long count, int total) {
         JPanel row = new JPanel(new BorderLayout());
-        row.setBackground(Color.WHITE);
+
+        Color rowBg = AppTheme.isDark() ? UIManager.getColor("Panel.background") : Color.WHITE;
+        Color separatorColor = AppTheme.isDark() ? new Color(60, 60, 60) : new Color(240, 240, 240);
+
+        row.setBackground(rowBg);
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
-        row.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(240, 240, 240)), new EmptyBorder(10, 15, 10, 15)));
+        row.setBorder(new CompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, separatorColor), new EmptyBorder(10, 15, 10, 15)));
 
         JLabel nameLabel = new JLabel(name);
         nameLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        nameLabel.setForeground(AppTheme.isDark() ? Color.WHITE : Color.BLACK);
 
         JLabel countLabel = new JLabel(count + " Songs");
-        countLabel.setForeground(Color.DARK_GRAY);
+        countLabel.setForeground(AppTheme.isDark() ? Color.LIGHT_GRAY : Color.DARK_GRAY);
 
         int percentage = total > 0 ? (int) ((count * 100) / total) : 0;
         JLabel percentLabel = new JLabel(percentage + "%");
         percentLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        percentLabel.setForeground(Color.LIGHT_GRAY);
+        percentLabel.setForeground(Color.GRAY);
 
         row.add(nameLabel, BorderLayout.WEST);
 
@@ -135,5 +175,4 @@ public class StatsPanel extends JPanel {
 
         return sb.toString();
     }
-
 }

@@ -2,12 +2,14 @@ package de.st197974.songmanager.ui.panels;
 
 import de.st197974.songmanager.model.Song;
 import de.st197974.songmanager.service.DiscographyService;
+import de.st197974.songmanager.ui.AppTheme;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MultiEditPanel extends JPanel {
@@ -15,25 +17,70 @@ public class MultiEditPanel extends JPanel {
     private final DiscographyService discographyService;
     private JTable songTable;
     private DefaultTableModel tableModel;
+    private JScrollPane scrollPane;
+    private JLabel titleLabel;
 
-    private final Color ACCENT_COLOR = new Color(44, 154, 255);
-    private final Color BG_COLOR = new Color(245, 245, 247);
+    private final List<JButton> primaryButtons = new ArrayList<>();
 
     public MultiEditPanel(DiscographyService discographyService) {
         this.discographyService = discographyService;
 
-        setBackground(BG_COLOR);
         setLayout(new BorderLayout(15, 15));
         setBorder(new EmptyBorder(20, 20, 20, 20));
 
         buildUI();
+
+        updateThemeColors();
+    }
+
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        if (songTable != null) {
+            updateThemeColors();
+        }
+    }
+
+    private void updateThemeColors() {
+        Color bg = AppTheme.isDark() ? UIManager.getColor("Panel.background") : new Color(245, 245, 247);
+        setBackground(bg);
+
+        if (titleLabel != null) {
+            titleLabel.setForeground(AppTheme.isDark() ? Color.WHITE : Color.BLACK);
+        }
+
+        if (songTable != null) {
+            Color tableBg = AppTheme.isDark() ? UIManager.getColor("Table.background") : Color.WHITE;
+            Color tableFg = AppTheme.isDark() ? Color.WHITE : Color.BLACK;
+            Color gridColor = AppTheme.isDark() ? new Color(60, 60, 60) : new Color(220, 220, 220);
+
+            songTable.setBackground(tableBg);
+            songTable.setForeground(tableFg);
+            songTable.setGridColor(gridColor);
+
+            songTable.setSelectionBackground(AppTheme.selection());
+            songTable.setSelectionForeground(AppTheme.isDark() ? Color.WHITE : Color.BLACK);
+
+            songTable.getTableHeader().setBackground(AppTheme.isDark() ? new Color(50, 50, 50) : new Color(240, 240, 240));
+            songTable.getTableHeader().setForeground(AppTheme.isDark() ? Color.LIGHT_GRAY : Color.BLACK);
+        }
+
+        if (scrollPane != null) {
+            Color borderColor = AppTheme.isDark() ? new Color(60, 60, 60) : new Color(220, 220, 220);
+            scrollPane.setBorder(BorderFactory.createLineBorder(borderColor));
+        }
+
+        for (JButton btn : primaryButtons) {
+            btn.setBackground(AppTheme.accent());
+        }
     }
 
     private void buildUI() {
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
 
-        JLabel titleLabel = new JLabel("Multi Management");
+        titleLabel = new JLabel("Multi Management");
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
         headerPanel.add(titleLabel, BorderLayout.WEST);
 
@@ -57,19 +104,17 @@ public class MultiEditPanel extends JPanel {
         };
 
         songTable = new JTable(tableModel);
-        styleTable();
+        styleTableStructure();
 
-        JScrollPane scrollPane = new JScrollPane(songTable);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
+        scrollPane = new JScrollPane(songTable);
+
         add(scrollPane, BorderLayout.CENTER);
     }
 
-    private void styleTable() {
+    private void styleTableStructure() {
         songTable.setRowHeight(35);
         songTable.setShowVerticalLines(false);
         songTable.setIntercellSpacing(new Dimension(0, 1));
-        songTable.setSelectionBackground(new Color(199, 221, 253));
-        songTable.setSelectionForeground(Color.BLACK);
         songTable.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
         songTable.getColumnModel().getColumn(0).setMinWidth(0);
@@ -77,6 +122,7 @@ public class MultiEditPanel extends JPanel {
 
         songTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 12));
         songTable.getTableHeader().setReorderingAllowed(false);
+
     }
 
     private JButton createPrimaryButton(String text, ActionListener listener) {
@@ -84,10 +130,13 @@ public class MultiEditPanel extends JPanel {
         btn.addActionListener(listener);
         btn.putClientProperty("JButton.buttonType", "square");
         btn.putClientProperty("JButton.arc", 0);
-        btn.setBackground(ACCENT_COLOR);
+
+        btn.setBackground(AppTheme.accent());
         btn.setForeground(Color.WHITE);
         btn.setFont(new Font("SansSerif", Font.BOLD, 13));
         btn.setPreferredSize(new Dimension(150, 35));
+
+        primaryButtons.add(btn);
         return btn;
     }
 
@@ -122,7 +171,9 @@ public class MultiEditPanel extends JPanel {
             String val = newValue.trim();
 
             for (int row : selectedRows) {
-                String id = (String) tableModel.getValueAt(row, 0);
+                int modelRow = songTable.convertRowIndexToModel(row);
+                String id = (String) tableModel.getValueAt(modelRow, 0);
+
                 Song existing = discographyService.getSongById(id);
 
                 if (existing != null) {
@@ -149,11 +200,9 @@ public class MultiEditPanel extends JPanel {
         java.util.Set<String> duplicateIds = new java.util.HashSet<>();
 
         for (Song s : allSongs) {
-
             String key = (s.title() + "|" + s.artist()).toLowerCase().trim();
 
             if (seen.containsKey(key)) {
-
                 duplicateIds.add(s.id());
                 duplicateIds.add(seen.get(key).getFirst());
                 seen.get(key).add(s.id());

@@ -1,6 +1,5 @@
 package de.st197974.songmanager.ui;
 
-import com.formdev.flatlaf.FlatLightLaf;
 import de.st197974.songmanager.model.Playlist;
 import de.st197974.songmanager.model.Song;
 import de.st197974.songmanager.service.DiscographyService;
@@ -16,20 +15,20 @@ import org.apache.logging.log4j.Logger;
 
 import javax.swing.*;
 import javax.swing.border.Border;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
 public class SongManagerUI extends JFrame {
     private static final Logger logger = LogManager.getLogger(SongManagerUI.class);
 
-    private final Color ACCENT_COLOR = new Color(44, 154, 255);
-    private final Color SIDEBAR_COLOR = new Color(255, 255, 255);
     private final Font MAIN_FONT = new Font("SansSerif", Font.PLAIN, 13);
 
     private final DiscographyService discographyService;
@@ -45,6 +44,14 @@ public class SongManagerUI extends JFrame {
     private FavoritesPanel favoritesPanel;
     private MultiEditPanel multiEditPanel;
     private StatsPanel statsPanel;
+    private JPanel sidebar;
+    private JPanel songHeader;
+    private JPanel footer;
+    private JPanel mainContent;
+    private JSplitPane librarySplit;
+
+    private final List<JButton> primaryButtons = new ArrayList<>();
+    private final List<JTextField> styledTextFields = new ArrayList<>();
 
     private final Song EMPTY_SONG_PLACEHOLDER = new Song("null", "No Songs found...", "", "", 0);
     private final JLabel statusBar = new JLabel("Ready...");
@@ -52,16 +59,11 @@ public class SongManagerUI extends JFrame {
     private JList<Song> songList;
     private JTextField songSearchField;
     private JTextField artistSearchField;
+    private JToggleButton darkModeToggle;
 
     public SongManagerUI(DiscographyService discographyService, PlaylistService playlistService, FavoritesService favoritesService, StatsService statsService) {
 
-        try {
-            UIManager.setLookAndFeel(new FlatLightLaf());
-            UIManager.put("TabbedPane.tabInsets", new Insets(5, 15, 5, 15));
-            UIManager.put("TabbedPane.tabHeight", 40);
-        } catch (Exception ex) {
-            System.err.println("Failed to initialize LaF");
-        }
+        AppTheme.applyLightTheme();
 
         this.discographyService = discographyService;
         this.playlistService = playlistService;
@@ -69,17 +71,17 @@ public class SongManagerUI extends JFrame {
         this.statsService = statsService;
 
         setTitle("SongManager 3.0");
-        setSize(1000, 800);
+        setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        Color BG_COLOR = new Color(245, 245, 247);
-        getContentPane().setBackground(BG_COLOR);
+
         setLayout(new BorderLayout());
 
         buildCenter();
         buildBottom();
 
-        loadArtists(null);
+        updateUIColors();
 
+        loadArtists(null);
         setVisible(true);
     }
 
@@ -88,7 +90,7 @@ public class SongManagerUI extends JFrame {
         tabbedPane.setFont(new Font("SansSerif", Font.BOLD, 12));
 
         artistList = new JList<>(artistModel);
-        artistList.setBackground(SIDEBAR_COLOR);
+
         artistList.setFixedCellHeight(30);
         artistList.setBorder(new EmptyBorder(5, 5, 5, 5));
         artistList.setCellRenderer(createArtistRenderer());
@@ -102,8 +104,13 @@ public class SongManagerUI extends JFrame {
         multiEditPanel = new MultiEditPanel(discographyService);
         statsPanel = new StatsPanel(statsService);
 
-        JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.setBackground(SIDEBAR_COLOR);
+        JPanel topBar = new JPanel(new BorderLayout());
+        topBar.setOpaque(false);
+        topBar.setBorder(new EmptyBorder(5, 5, 0, 10));
+        topBar.add(tabbedPane, BorderLayout.CENTER);
+
+        sidebar = new JPanel(new BorderLayout());
+
         artistSearchField = createStyledTextField();
         artistSearchField.setPreferredSize(new Dimension(200, 30));
 
@@ -115,11 +122,9 @@ public class SongManagerUI extends JFrame {
         sidebar.add(searchWrapper, BorderLayout.NORTH);
         sidebar.add(new JScrollPane(artistList), BorderLayout.CENTER);
 
-        JPanel mainContent = new JPanel(new BorderLayout());
-        mainContent.setBackground(Color.WHITE);
+        mainContent = new JPanel(new BorderLayout());
 
-        JPanel songHeader = new JPanel(new BorderLayout(10, 10));
-        songHeader.setBackground(Color.WHITE);
+        songHeader = new JPanel(new BorderLayout(10, 10));
         songHeader.setBorder(new EmptyBorder(10, 10, 10, 10));
 
         songSearchField = createStyledTextField();
@@ -136,7 +141,7 @@ public class SongManagerUI extends JFrame {
         mainContent.add(new JScrollPane(songList), BorderLayout.CENTER);
         mainContent.add(sortActions, BorderLayout.SOUTH);
 
-        JSplitPane librarySplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, sidebar, mainContent);
+        librarySplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, sidebar, mainContent);
         librarySplit.setDividerLocation(250);
         librarySplit.setDividerSize(1);
         librarySplit.setBackground(new Color(220, 220, 220));
@@ -164,13 +169,12 @@ public class SongManagerUI extends JFrame {
         addSearchListener(artistSearchField, () -> filterArtists(artistSearchField.getText().trim()));
         addSearchListener(songSearchField, () -> filterSongs(songSearchField.getText().trim()));
 
-        add(tabbedPane, BorderLayout.CENTER);
+        add(topBar, BorderLayout.CENTER);
         refreshTabData();
     }
 
     private void buildBottom() {
-        JPanel footer = new JPanel(new BorderLayout());
-        footer.setBackground(Color.WHITE);
+        footer = new JPanel(new BorderLayout());
         footer.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 220, 220)));
 
         JPanel actionButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
@@ -182,36 +186,119 @@ public class SongManagerUI extends JFrame {
         actionButtons.add(createSecondaryButton("Delete Song", _ -> deleteSelectedSong()));
 
         statusBar.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        statusBar.setBorder(new EmptyBorder(0, 20, 0, 40));
+        statusBar.setBorder(new EmptyBorder(0, 60, 0, 0));
+
+        darkModeToggle = createThemeToggle();
+        darkModeToggle.setBorder(new CompoundBorder(new EmptyBorder(5, 0, 5, 10), darkModeToggle.getBorder()));
 
         footer.add(actionButtons, BorderLayout.WEST);
-        footer.add(statusBar, BorderLayout.EAST);
+        footer.add(statusBar, BorderLayout.CENTER);
+        footer.add(darkModeToggle, BorderLayout.EAST);
         add(footer, BorderLayout.SOUTH);
 
         setupSongListContextMenu();
     }
 
+    private void updateUIColors() {
+        SwingUtilities.updateComponentTreeUI(this);
+
+        sidebar.setBackground(AppTheme.sidebar());
+        artistList.setBackground(AppTheme.sidebar());
+
+        Color contentBg = AppTheme.isDark() ? UIManager.getColor("Panel.background") : Color.WHITE;
+        mainContent.setBackground(contentBg);
+        songHeader.setBackground(contentBg);
+        footer.setBackground(contentBg);
+
+        statusBar.setForeground(AppTheme.isDark() ? Color.LIGHT_GRAY : Color.BLACK);
+
+        int selectedIndex = tabbedPane.getSelectedIndex();
+        for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+            Component c = tabbedPane.getTabComponentAt(i);
+
+            if (c instanceof JLabel lbl) {
+                boolean isSelected = (i == selectedIndex);
+
+                if (isSelected) {
+
+                    lbl.setForeground(AppTheme.isDark() ? new Color(100, 180, 255) : new Color(16, 148, 255));
+                    lbl.setFont(lbl.getFont().deriveFont(Font.BOLD));
+                } else {
+
+                    lbl.setForeground(AppTheme.isDark() ? Color.LIGHT_GRAY : new Color(100, 100, 100));
+                    lbl.setFont(lbl.getFont().deriveFont(Font.PLAIN));
+                }
+            }
+        }
+
+        for (JButton btn : primaryButtons) {
+            btn.setBackground(AppTheme.accent());
+        }
+
+        for (JTextField field : styledTextFields) {
+            field.setBorder(BorderFactory.createCompoundBorder(new LineBorder(new Color(200, 200, 200), 1), new EmptyBorder(5, 12, 5, 12)));
+
+            field.setBackground(AppTheme.isDark() ? new Color(60, 63, 65) : new Color(238, 238, 240));
+
+            field.setForeground(AppTheme.isDark() ? Color.WHITE : Color.BLACK);
+            field.setCaretColor(AppTheme.isDark() ? Color.WHITE : Color.BLACK);
+        }
+
+        Color toggleBorderColor = Color.GRAY;
+        Color toggleTextColor = AppTheme.isDark() ? Color.WHITE : Color.BLACK;
+
+        darkModeToggle.setBorder(new CompoundBorder(new EmptyBorder(0, 0, 0, 0), BorderFactory.createLineBorder(toggleBorderColor, 1)));
+        darkModeToggle.setForeground(toggleTextColor);
+
+        this.repaint();
+    }
+
+    private JToggleButton createThemeToggle() {
+        JToggleButton toggle = new JToggleButton(AppTheme.isDark() ? "☀" : "\uD83C\uDF19");
+        toggle.setSelected(AppTheme.isDark());
+
+        toggle.setPreferredSize(new Dimension(60, 25));
+
+        toggle.putClientProperty("JButton.buttonType", "square");
+        toggle.putClientProperty("JButton.arc", 50);
+        toggle.setBackground(UIManager.getColor("App.accentColor"));
+
+        toggle.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        toggle.setOpaque(true);
+        toggle.setFocusPainted(false);
+
+        toggle.addActionListener(_ -> {
+            AppTheme.toggleTheme();
+            toggle.setText(AppTheme.isDark() ? "☀" : "\uD83C\uDF19");
+            updateUIColors();
+        });
+        return toggle;
+    }
+
     private JTextField createStyledTextField() {
         JTextField field = new JTextField();
         field.setPreferredSize(new Dimension(100, 40));
-        field.setBackground(new Color(238, 238, 240));
         field.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
-        Border normalBorder = BorderFactory.createCompoundBorder(new LineBorder(new Color(200, 200, 200), 1), new EmptyBorder(5, 12, 5, 12));
+        styledTextFields.add(field);
 
-        Border focusBorder = BorderFactory.createCompoundBorder(new LineBorder(ACCENT_COLOR, 2), new EmptyBorder(4, 11, 4, 11));
+        Border normalBorder = BorderFactory.createCompoundBorder(new LineBorder(new Color(200, 200, 200), 1), new EmptyBorder(5, 12, 5, 12));
 
         field.setBorder(normalBorder);
 
         field.addFocusListener(new FocusAdapter() {
             public void focusGained(FocusEvent e) {
+
+                Border focusBorder = BorderFactory.createCompoundBorder(new LineBorder(AppTheme.accent(), 2), new EmptyBorder(4, 11, 4, 11));
                 field.setBorder(focusBorder);
-                field.setBackground(Color.WHITE);
+
+                field.setBackground(AppTheme.isDark() ? new Color(70, 73, 75) : Color.WHITE);
             }
 
             public void focusLost(FocusEvent e) {
                 field.setBorder(normalBorder);
-                field.setBackground(new Color(238, 238, 240));
+                field.setBackground(AppTheme.isDark() ? new Color(60, 63, 65) : new Color(238, 238, 240));
             }
         });
 
@@ -226,10 +313,12 @@ public class SongManagerUI extends JFrame {
         btn.putClientProperty("JButton.arc", 0);
 
         btn.setPreferredSize(new Dimension(120, 35));
-        btn.setBackground(ACCENT_COLOR);
+
+        btn.setBackground(AppTheme.accent());
         btn.setForeground(Color.WHITE);
         btn.setFont(new Font("SansSerif", Font.BOLD, 13));
 
+        primaryButtons.add(btn);
         return btn;
     }
 
@@ -241,9 +330,6 @@ public class SongManagerUI extends JFrame {
         btn.setPreferredSize(new Dimension(120, 35));
 
         btn.putClientProperty("JButton.buttonType", "square");
-        btn.putClientProperty("JButton.hoverBackground", new Color(220, 235, 255));
-        btn.putClientProperty("JButton.pressedBackground", new Color(200, 220, 250));
-        btn.putClientProperty("JButton.focusWidth", 0);
         btn.putClientProperty("JButton.arc", 0);
 
         btn.setOpaque(true);
@@ -270,14 +356,21 @@ public class SongManagerUI extends JFrame {
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
 
-                label.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)), BorderFactory.createEmptyBorder(5, 15, 5, 15)));
+                Color dividerColor = UIManager.getColor("App.dividerColor");
+
+                label.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, dividerColor), BorderFactory.createEmptyBorder(5, 15, 5, 15)));
 
                 if (value instanceof String artist) {
                     label.setText(artist);
                 }
 
-                label.setBackground(isSelected ? new Color(199, 221, 253) : SIDEBAR_COLOR);
-                label.setForeground(isSelected ? Color.BLACK : Color.DARK_GRAY);
+                if (isSelected) {
+                    label.setBackground(AppTheme.selection());
+                    label.setForeground(AppTheme.isDark() ? Color.WHITE : Color.BLACK);
+                } else {
+                    label.setBackground(AppTheme.sidebar());
+                    label.setForeground(AppTheme.isDark() ? Color.LIGHT_GRAY : Color.DARK_GRAY);
+                }
 
                 label.setFont(new Font("SansSerif", Font.BOLD, 13));
                 label.setOpaque(true);
@@ -293,17 +386,30 @@ public class SongManagerUI extends JFrame {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JPanel itemPanel = new JPanel(new BorderLayout(15, 0));
-                itemPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)), BorderFactory.createEmptyBorder(5, 15, 5, 15)));
-                itemPanel.setBackground(isSelected ? new Color(199, 221, 253) : Color.WHITE);
+
+                Color normalBg = AppTheme.isDark() ? UIManager.getColor("List.background") : Color.WHITE;
+                itemPanel.setBackground(isSelected ? AppTheme.selection() : normalBg);
+
+                itemPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, UIManager.getColor("App.dividerColor")), BorderFactory.createEmptyBorder(5, 15, 5, 15)));
 
                 if (value instanceof Song song) {
-                    JLabel titleLabel = new JLabel("<html><b>" + song.title() + "</b><br><font color='gray'>" + song.artist() + (song.album().isEmpty() ? "" : " • " + song.album()) + "</font></html>");
+                    String titleColor = AppTheme.isDark() ? (isSelected ? "white" : "#dddddd") : "black";
+                    String subColor = AppTheme.isDark() ? (isSelected ? "#cccccc" : "gray") : "gray";
+
+                    JLabel titleLabel = new JLabel("<html><b><font color='" + titleColor + "'>" + song.title() + "</font></b><br><font color='" + subColor + "'>" + song.artist() + (song.album().isEmpty() ? "" : " • " + song.album()) + "</font></html>");
                     titleLabel.setFont(MAIN_FONT);
 
                     boolean isFav = favoritesService.isFavorite(song.id());
                     JLabel rightLabel = new JLabel((isFav ? "★ " : "") + song.formatTime(song.durationInSeconds()));
                     rightLabel.setFont(new Font("Monospaced", Font.BOLD, 12));
-                    rightLabel.setForeground(isFav ? new Color(255, 153, 0) : Color.DARK_GRAY);
+
+                    Color timeColor;
+                    if (isFav) timeColor = new Color(255, 153, 0);
+                    else timeColor = AppTheme.isDark() ? Color.LIGHT_GRAY : Color.DARK_GRAY;
+
+                    if (isSelected && !isFav) timeColor = Color.WHITE;
+
+                    rightLabel.setForeground(timeColor);
 
                     itemPanel.add(titleLabel, BorderLayout.CENTER);
                     itemPanel.add(rightLabel, BorderLayout.EAST);
@@ -315,14 +421,9 @@ public class SongManagerUI extends JFrame {
 
     private void refreshTabData() {
         int idx = tabbedPane.getSelectedIndex();
-
         statusBar.setVisible(idx == 0);
-
         switch (idx) {
-            case 0 -> {
-                String lastSelected = artistList.getSelectedValue();
-                loadArtists(lastSelected);
-            }
+            case 0 -> loadArtists(artistList.getSelectedValue());
             case 1 -> {
                 if (playlistPanel != null) playlistPanel.loadPlaylists();
             }
@@ -346,15 +447,19 @@ public class SongManagerUI extends JFrame {
         lbl.setFont(new Font("Inter", Font.PLAIN, 13));
         lbl.setOpaque(false);
         lbl.setBorder(new EmptyBorder(10, 20, 10, 20));
+
         lbl.setForeground(new Color(100, 100, 100));
 
         tabbedPane.addChangeListener(_ -> {
             int selectedIndex = tabbedPane.getSelectedIndex();
+            Color activeColor = AppTheme.isDark() ? new Color(100, 180, 255) : new Color(16, 148, 255);
+            Color inactiveColor = AppTheme.isDark() ? Color.LIGHT_GRAY : new Color(100, 100, 100);
+
             if (selectedIndex == index) {
-                lbl.setForeground(new Color(16, 148, 255));
+                lbl.setForeground(activeColor);
                 lbl.setFont(lbl.getFont().deriveFont(Font.BOLD));
             } else {
-                lbl.setForeground(new Color(100, 100, 100));
+                lbl.setForeground(inactiveColor);
                 lbl.setFont(lbl.getFont().deriveFont(Font.PLAIN));
             }
         });
@@ -362,14 +467,10 @@ public class SongManagerUI extends JFrame {
         tabbedPane.setTabComponentAt(index, lbl);
     }
 
-
     private void loadArtists(String artistToSelect) {
         String current = (artistToSelect != null) ? artistToSelect : artistList.getSelectedValue();
-
         artistModel.clear();
-
         discographyService.getAllArtists().forEach(artistModel::addElement);
-
         if (current != null && artistModel.contains(current)) {
             artistList.setSelectedValue(current, true);
         } else if (!artistModel.isEmpty()) {
@@ -381,32 +482,24 @@ public class SongManagerUI extends JFrame {
         songModel.clear();
         List<Song> songs = discographyService.getSongsAlphabetically(artist);
         songs.forEach(songModel::addElement);
-
         updateStatusBar(songs, artist);
     }
 
     private void filterArtists(String query) {
         String lowerQuery = query.toLowerCase().trim();
-
         List<String> filtered = discographyService.getAllArtists().stream().filter(a -> a.toLowerCase().contains(lowerQuery)).sorted(String.CASE_INSENSITIVE_ORDER).toList();
-
         artistModel.clear();
-
         if (filtered.isEmpty() && !lowerQuery.isEmpty()) {
             artistModel.addElement(" No Result for '" + query + "'!");
         } else {
             filtered.forEach(artistModel::addElement);
-            if (!artistModel.isEmpty()) {
-                artistList.setSelectedIndex(0);
-            }
+            if (!artistModel.isEmpty()) artistList.setSelectedIndex(0);
         }
-
     }
 
     private void filterSongs(String query) {
         String lowerQuery = query.toLowerCase();
         List<Song> results;
-
         if (lowerQuery.isEmpty()) {
             String artist = artistList.getSelectedValue();
             if (artist == null) {
@@ -417,52 +510,37 @@ public class SongManagerUI extends JFrame {
         } else {
             results = discographyService.getAll().stream().filter(s -> s.title().toLowerCase().contains(lowerQuery) || s.album().toLowerCase().contains(lowerQuery) || s.artist().toLowerCase().contains(lowerQuery)).sorted(Comparator.comparing(Song::title, String.CASE_INSENSITIVE_ORDER)).toList();
         }
-
         refreshSongList(results);
-
         String statusInfo = lowerQuery.isEmpty() ? artistList.getSelectedValue() : "Search: '" + query + "'";
         updateStatusBar(results, statusInfo);
-
     }
 
     private void showSongInfo() {
         Song s;
-
-        if (tabbedPane != null && tabbedPane.getSelectedIndex() == 1) {
-            s = playlistPanel.getSelectedSong();
-        } else if (tabbedPane != null && tabbedPane.getSelectedIndex() == 2) {
-            s = favoritesPanel.getSelectedFavorite();
-        } else {
-            s = songList.getSelectedValue();
-        }
+        if (tabbedPane != null && tabbedPane.getSelectedIndex() == 1) s = playlistPanel.getSelectedSong();
+        else if (tabbedPane != null && tabbedPane.getSelectedIndex() == 2) s = favoritesPanel.getSelectedFavorite();
+        else s = songList.getSelectedValue();
 
         if (s == null || s == EMPTY_SONG_PLACEHOLDER) {
             JOptionPane.showMessageDialog(this, "Select a song first!");
             return;
         }
-
         JOptionPane.showMessageDialog(this, "Title: " + s.title() + "\nArtist: " + s.artist() + "\nAlbum: " + s.album() + "\nDuration: " + s.formatTime(s.durationInSeconds()) + " (" + s.durationInSeconds() + "s)", "Song Info", JOptionPane.INFORMATION_MESSAGE);
-
     }
 
     private void updateStatusBar(List<Song> songs, String artist) {
-
         int totalSeconds = songs.stream().mapToInt(Song::durationInSeconds).sum();
-
         int min = totalSeconds / 60;
         int sec = totalSeconds % 60;
 
-        statusBar.setForeground(Color.BLACK);
+        statusBar.setForeground(AppTheme.isDark() ? Color.LIGHT_GRAY : Color.BLACK);
         statusBar.setText("Artist: " + artist + " | Songs: " + songs.size() + " | Time: " + min + ":" + String.format("%02d", sec));
     }
 
     private void refreshSongList(List<Song> songs) {
         songModel.clear();
-        if (songs.isEmpty()) {
-            songModel.addElement(EMPTY_SONG_PLACEHOLDER);
-        } else {
-            songs.forEach(songModel::addElement);
-        }
+        if (songs.isEmpty()) songModel.addElement(EMPTY_SONG_PLACEHOLDER);
+        else songs.forEach(songModel::addElement);
     }
 
     private void sortSongsByAlbum() {
@@ -482,21 +560,17 @@ public class SongManagerUI extends JFrame {
     }
 
     private void sortSongsAlphabetically(String artist) {
-
         if (artist != null) {
             List<Song> sortedSongs = discographyService.getSongsAlphabetically(artist);
             refreshSongList(sortedSongs);
         }
-
     }
 
     private void editSelectedSong() {
-
         if (tabbedPane != null && tabbedPane.getSelectedIndex() >= 1) {
             JOptionPane.showMessageDialog(this, "Unable to EDIT here!\n" + "Please switch to 'Library' to manage the main library.", "Action Not Allowed", JOptionPane.WARNING_MESSAGE);
             return;
         }
-
         Song s = songList.getSelectedValue();
         if (s == null || s == EMPTY_SONG_PLACEHOLDER) {
             JOptionPane.showMessageDialog(this, "Select a song first!");
@@ -506,39 +580,28 @@ public class SongManagerUI extends JFrame {
     }
 
     private void deleteSelectedSong() {
-
         if (tabbedPane != null && tabbedPane.getSelectedIndex() >= 1) {
             JOptionPane.showMessageDialog(this, "Unable to DELETE here!\n" + "Please switch to 'Library' to manage the main library.", "Action Not Allowed", JOptionPane.WARNING_MESSAGE);
             return;
         }
-
         Song s = songList.getSelectedValue();
         if (s == null || s == EMPTY_SONG_PLACEHOLDER) {
             JOptionPane.showMessageDialog(this, "Select a song first!");
             return;
         }
-
         int confirm = JOptionPane.showConfirmDialog(this, "Delete '" + s.title() + "'?", "Confirm", JOptionPane.YES_NO_OPTION);
-
         if (confirm == JOptionPane.YES_OPTION) {
-
             String currentArtist = s.artist();
-
             discographyService.deleteSong(s.id());
             loadSongs(s.artist());
             loadArtists(null);
-
-            if (artistModel.contains(currentArtist)) {
-                loadSongs(currentArtist);
-            }
-
+            if (artistModel.contains(currentArtist)) loadSongs(currentArtist);
             logger.info("Deleted song {}", s.title());
         }
     }
 
     private void showSongForm(Song songToEdit) {
         boolean isEdit = (songToEdit != null);
-
         JTextField titleField = new JTextField(isEdit ? songToEdit.title() : "", 15);
         silenceBackspace(titleField);
         JTextField albumField = new JTextField(isEdit ? songToEdit.album() : "", 15);
@@ -547,7 +610,6 @@ public class SongManagerUI extends JFrame {
         silenceBackspace(artistField);
         JTextField durationField = new JTextField(isEdit ? String.valueOf(songToEdit.durationInSeconds()) : "", 15);
         silenceBackspace(durationField);
-
         JLabel errorLabel = new JLabel(" ");
         errorLabel.setForeground(Color.RED);
         errorLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
@@ -566,7 +628,6 @@ public class SongManagerUI extends JFrame {
         boolean valid = false;
         while (!valid) {
             int result = JOptionPane.showConfirmDialog(this, panel, isEdit ? "Edit Song" : "Add New Song", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
             if (result == JOptionPane.OK_OPTION) {
                 try {
                     String title = titleField.getText().trim();
@@ -579,18 +640,12 @@ public class SongManagerUI extends JFrame {
                         discographyService.updateSongSafely(updatedSong);
                     } else {
                         discographyService.addSongSafely(new Song(title, album, artist, duration));
-
-                        if (tabbedPane != null) {
-                            tabbedPane.setSelectedIndex(0);
-                        }
+                        if (tabbedPane != null) tabbedPane.setSelectedIndex(0);
                     }
-
                     loadArtists(artist);
                     loadSongs(artist);
-
                     logger.info("{} song: {}", isEdit ? "Updated" : "Added", title);
                     valid = true;
-
                 } catch (NumberFormatException e) {
                     errorLabel.setText(" Please enter a valid number for duration!");
                 }
@@ -601,18 +656,13 @@ public class SongManagerUI extends JFrame {
     }
 
     private void silenceBackspace(JTextField textField) {
-
         Action originalAction = textField.getActionMap().get("delete-previous");
-
         textField.getActionMap().put("delete-previous", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (!textField.getText().isEmpty()) {
-                    originalAction.actionPerformed(e);
-                }
+                if (!textField.getText().isEmpty()) originalAction.actionPerformed(e);
             }
         });
-
     }
 
     private void addSearchListener(JTextField textField, Runnable action) {
@@ -636,19 +686,16 @@ public class SongManagerUI extends JFrame {
 
     private void setupSongListContextMenu() {
         JPopupMenu popupMenu = new JPopupMenu();
-
         popupMenu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
             @Override
             public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {
                 popupMenu.removeAll();
-
                 Song selectedSong = songList.getSelectedValue();
                 if (selectedSong == null || selectedSong == EMPTY_SONG_PLACEHOLDER) return;
 
                 JMenuItem addToPlaylist = new JMenuItem("Add to Playlist...");
                 addToPlaylist.addActionListener(_ -> showPlaylistSelectionDialog(selectedSong));
                 popupMenu.add(addToPlaylist);
-
                 popupMenu.addSeparator();
 
                 if (favoritesService.isFavorite(selectedSong.id())) {
@@ -670,16 +717,12 @@ public class SongManagerUI extends JFrame {
             public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) {
             }
         });
-
         songList.setComponentPopupMenu(popupMenu);
-
         songList.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
                 if (SwingUtilities.isRightMouseButton(e)) {
                     int row = songList.locationToIndex(e.getPoint());
-                    if (row != -1) {
-                        songList.setSelectedIndex(row);
-                    }
+                    if (row != -1) songList.setSelectedIndex(row);
                 }
             }
         });
@@ -687,71 +730,49 @@ public class SongManagerUI extends JFrame {
 
     private void showPlaylistSelectionDialog(Song song) {
         List<Playlist> playlists = playlistService.getAllPlaylists();
-
         if (playlists.isEmpty()) {
             JOptionPane.showMessageDialog(this, "No playlists found. Create one first!");
             return;
         }
-
         Playlist[] playlistArray = playlists.toArray(new Playlist[0]);
-
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.add(new JLabel("Add '" + song.title() + "' to:"), BorderLayout.NORTH);
-
         JComboBox<Playlist> playlistCombo = new JComboBox<>(playlistArray);
         panel.add(playlistCombo, BorderLayout.CENTER);
 
         int result = JOptionPane.showConfirmDialog(this, panel, "Select Playlist", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
         if (result == JOptionPane.OK_OPTION) {
             Playlist selected = (Playlist) playlistCombo.getSelectedItem();
             if (selected != null) {
                 boolean added = playlistService.addSongToPlaylist(selected.id(), song.id());
-
                 if (added) {
-                    if (playlistPanel != null) {
-                        playlistPanel.loadPlaylists();
-                    }
+                    if (playlistPanel != null) playlistPanel.loadPlaylists();
                     statusBar.setForeground(new Color(0, 150, 0));
                     statusBar.setText("Added '" + song.title() + "' to '" + selected.name() + "'!");
                 } else {
                     statusBar.setForeground(new Color(150, 0, 0));
                     statusBar.setText("Song '" + song.title() + "' is already in '" + selected.name() + "'!");
                 }
-
             }
         }
     }
 
     private void addSongToFavorites(Song selectedSong) {
-
         boolean added = favoritesService.addFavorite(selectedSong.id());
-
         if (added) {
             statusBar.setForeground(new Color(0, 150, 0));
             statusBar.setText("Added '" + selectedSong.title() + "' to Favorites!");
-
-            if (tabbedPane != null && favoritesPanel != null) {
-                favoritesPanel.loadFavorites();
-            }
-
+            if (tabbedPane != null && favoritesPanel != null) favoritesPanel.loadFavorites();
         } else {
             statusBar.setForeground(new Color(150, 0, 0));
             statusBar.setText("Song '" + selectedSong.title() + "' is already in Favorites!");
         }
-
     }
 
     private void removeSongFromFavorites(Song selectedSong) {
-
         statusBar.setForeground(new Color(150, 100, 0));
         statusBar.setText("Song '" + selectedSong.title() + "' was removed from Favorites");
         favoritesService.removeFavorite(selectedSong.id());
-
-        if (tabbedPane != null && favoritesPanel != null) {
-            favoritesPanel.loadFavorites();
-        }
-
+        if (tabbedPane != null && favoritesPanel != null) favoritesPanel.loadFavorites();
     }
-
 }

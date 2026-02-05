@@ -1,11 +1,13 @@
 package de.st197974.songmanager.ui.panels;
 
-import com.formdev.flatlaf.FlatLightLaf;
 import de.st197974.songmanager.model.Song;
 import de.st197974.songmanager.service.FavoritesService;
+import de.st197974.songmanager.ui.AppTheme;
 
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -18,34 +20,56 @@ public class FavoritesPanel extends JPanel {
     private final DefaultListModel<Song> favoriteModel = new DefaultListModel<>();
     private JList<Song> favoriteList;
 
-    private final Color DANGER_COLOR = new Color(255, 107, 107);
+    private JLabel titleLabel;
+    private JLabel subtitleLabel;
+    private JButton removeBtn;
+    private JPanel headerPanel;
 
     public FavoritesPanel(FavoritesService favoritesService) {
-
-        try {
-            UIManager.setLookAndFeel(new FlatLightLaf());
-        } catch (Exception ex) {
-            System.err.println("Failed to initialize LaF");
-        }
-
         this.favoritesService = favoritesService;
 
-        Color BG_COLOR = new Color(245, 245, 247);
-        setBackground(BG_COLOR);
         setLayout(new BorderLayout(20, 20));
         setBorder(new EmptyBorder(25, 25, 25, 25));
 
         buildUI();
         loadFavorites();
+
+        updateThemeColors();
+    }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+
+        if (titleLabel != null) {
+            updateThemeColors();
+        }
+    }
+
+    private void updateThemeColors() {
+        Color bg = AppTheme.isDark() ? UIManager.getColor("Panel.background") : new Color(245, 245, 247);
+        setBackground(bg);
+
+        if (titleLabel != null) {
+            titleLabel.setForeground(AppTheme.isDark() ? Color.WHITE : new Color(50, 50, 50));
+            subtitleLabel.setForeground(AppTheme.isDark() ? Color.LIGHT_GRAY : Color.GRAY);
+        }
+
+        if (favoriteList != null) {
+            favoriteList.setBackground(AppTheme.isDark() ? UIManager.getColor("List.background") : Color.WHITE);
+        }
+
+        if (removeBtn != null) {
+            styleRemoveButton(removeBtn);
+        }
     }
 
     private void buildUI() {
-        JPanel headerPanel = getJPanel();
+        headerPanel = createHeaderPanel();
 
         favoriteList = new JList<>(favoriteModel);
         favoriteList.setFixedCellHeight(40);
         favoriteList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        favoriteList.setBackground(Color.WHITE);
         favoriteList.setCellRenderer(createFavoriteRenderer());
 
         JScrollPane scrollPane = new JScrollPane(favoriteList);
@@ -62,8 +86,8 @@ public class FavoritesPanel extends JPanel {
         leftActions.add(createSortButton("Sort A-Z", _ -> sortSongsAlphabetically()));
         leftActions.add(createSortButton("Sort Artist", _ -> sortSongsByArtist()));
 
-        JButton removeBtn = new JButton("Remove from Favorites");
-        styleRemoveButton(removeBtn);
+        removeBtn = new JButton("Remove from Favorites");
+
         removeBtn.addActionListener(_ -> removeFavorite());
 
         actionPanel.add(leftActions, BorderLayout.WEST);
@@ -74,25 +98,23 @@ public class FavoritesPanel extends JPanel {
         add(actionPanel, BorderLayout.SOUTH);
     }
 
-    private static JPanel getJPanel() {
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setOpaque(false);
+    private JPanel createHeaderPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
 
-        JLabel titleLabel = new JLabel("Your Favorite Songs");
+        titleLabel = new JLabel("Your Favorite Songs");
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 22));
-        titleLabel.setForeground(new Color(50, 50, 50));
 
-        JLabel subtitleLabel = new JLabel("Easy overview over all your favorites!");
+        subtitleLabel = new JLabel("Easy overview over all your favorites!");
         subtitleLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        subtitleLabel.setForeground(Color.GRAY);
 
         JPanel textWrapper = new JPanel(new GridLayout(2, 1));
         textWrapper.setOpaque(false);
         textWrapper.add(titleLabel);
         textWrapper.add(subtitleLabel);
 
-        headerPanel.add(textWrapper, BorderLayout.WEST);
-        return headerPanel;
+        panel.add(textWrapper, BorderLayout.WEST);
+        return panel;
     }
 
     private DefaultListCellRenderer createFavoriteRenderer() {
@@ -100,15 +122,31 @@ public class FavoritesPanel extends JPanel {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JPanel itemPanel = new JPanel(new BorderLayout(15, 0));
-                itemPanel.setBackground(isSelected ? new Color(199, 221, 253) : Color.WHITE);
-                itemPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)), BorderFactory.createEmptyBorder(5, 15, 5, 15)));
+
+                Color normalBg = AppTheme.isDark() ? UIManager.getColor("List.background") : Color.WHITE;
+                itemPanel.setBackground(isSelected ? AppTheme.selection() : normalBg);
+
+                Color borderColor = AppTheme.isDark() ? new Color(60, 60, 60) : new Color(220, 220, 220);
+                itemPanel.setBorder(new CompoundBorder(new MatteBorder(0, 0, 1, 0, borderColor), new EmptyBorder(5, 15, 5, 15)));
 
                 if (value instanceof Song song) {
-                    JLabel titleLabel = new JLabel("<html><span style='color: #FFAE00;'>★</span> <b>" + song.title() + "</b></html>");
+
+                    String titleHex = AppTheme.isDark() ? (isSelected ? "ffffff" : "dddddd") : "000000";
+                    String starColor = isSelected ? (AppTheme.isDark() ? "#FFD700" : "#FFAE00") : "#FFAE00";
+
+                    JLabel titleLabel = new JLabel("<html><span style='color: " + starColor + ";'>★</span> <b><font color='#" + titleHex + "'>" + song.title() + "</font></b></html>");
                     titleLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
 
                     JLabel artistLabel = new JLabel(song.artist());
-                    artistLabel.setForeground(Color.GRAY);
+
+                    Color artistColor;
+                    if (isSelected) {
+                        artistColor = AppTheme.isDark() ? Color.LIGHT_GRAY : Color.DARK_GRAY;
+                    } else {
+                        artistColor = Color.GRAY;
+                    }
+                    artistLabel.setForeground(artistColor);
+
                     artistLabel.setFont(new Font("SansSerif", Font.ITALIC, 12));
 
                     itemPanel.add(titleLabel, BorderLayout.CENTER);
@@ -129,38 +167,53 @@ public class FavoritesPanel extends JPanel {
         btn.putClientProperty("JButton.buttonType", "square");
         btn.putClientProperty("JButton.arc", 0);
 
-        btn.setBackground(Color.WHITE);
-        btn.setForeground(DANGER_COLOR);
-        btn.setBorder(BorderFactory.createLineBorder(DANGER_COLOR, 1));
+        Color danger = AppTheme.danger();
+        Color bg = AppTheme.isDark() ? UIManager.getColor("Panel.background") : Color.WHITE;
+
+        btn.setBackground(bg);
+        btn.setForeground(danger);
+        btn.setBorder(BorderFactory.createLineBorder(danger, 1));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        btn.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                btn.setBackground(DANGER_COLOR);
-                btn.setForeground(Color.WHITE);
-            }
+        for (var ml : btn.getMouseListeners()) {
+            if (ml instanceof DangerHoverListener) btn.removeMouseListener(ml);
+        }
 
-            @Override
-            public void mouseExited(MouseEvent e) {
-                btn.setBackground(Color.WHITE);
-                btn.setForeground(DANGER_COLOR);
-            }
+        btn.addMouseListener(new DangerHoverListener(btn));
+    }
 
-            @Override
-            public void mousePressed(MouseEvent e) {
-                btn.setBackground(DANGER_COLOR.darker());
-            }
+    private static class DangerHoverListener extends MouseAdapter {
+        private final JButton btn;
 
-            @Override
-            public void mouseReleased(MouseEvent e) {
-                if (btn.getBounds().contains(e.getPoint())) {
-                    btn.setBackground(DANGER_COLOR);
-                } else {
-                    btn.setBackground(Color.WHITE);
-                }
+        public DangerHoverListener(JButton btn) {
+            this.btn = btn;
+        }
+
+        @Override
+        public void mouseEntered(MouseEvent e) {
+            btn.setBackground(AppTheme.danger());
+            btn.setForeground(Color.WHITE);
+        }
+
+        @Override
+        public void mouseExited(MouseEvent e) {
+            btn.setBackground(AppTheme.isDark() ? UIManager.getColor("Panel.background") : Color.WHITE);
+            btn.setForeground(AppTheme.danger());
+        }
+
+        @Override
+        public void mousePressed(MouseEvent e) {
+            btn.setBackground(AppTheme.danger().darker());
+        }
+
+        @Override
+        public void mouseReleased(MouseEvent e) {
+            if (btn.getBounds().contains(e.getPoint())) {
+                btn.setBackground(AppTheme.danger());
+            } else {
+                mouseExited(e);
             }
-        });
+        }
     }
 
     private JButton createSortButton(String text, ActionListener listener) {
@@ -214,6 +267,12 @@ public class FavoritesPanel extends JPanel {
         sortedSongs.forEach(favoriteModel::addElement);
         if (!favoriteModel.isEmpty()) {
             favoriteList.setSelectedIndex(0);
+        }
+    }
+
+    private static class MatteBorder extends javax.swing.border.MatteBorder {
+        public MatteBorder(int top, int left, int bottom, int right, Color matteColor) {
+            super(top, left, bottom, right, matteColor);
         }
     }
 }

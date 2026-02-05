@@ -4,13 +4,18 @@ import de.st197974.songmanager.model.Playlist;
 import de.st197974.songmanager.model.Song;
 import de.st197974.songmanager.repository.SongRepository;
 import de.st197974.songmanager.service.PlaylistService;
+import de.st197974.songmanager.ui.AppTheme;
 
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
+import javax.swing.border.MatteBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.List;
 
 public class PlaylistPanel extends JPanel {
@@ -24,40 +29,74 @@ public class PlaylistPanel extends JPanel {
     private JList<Playlist> playlistList;
     private JList<Song> songList;
 
+    private JPanel sidebarPanel;
+    private JPanel mainPanel;
+    private JPanel mainHeader;
     private JLabel mainTitle;
+    private JLabel sidebarTitle;
 
-    private final Color ACCENT_COLOR = new Color(97, 182, 255);
-    private final Color BG_COLOR = new Color(245, 245, 247);
-    private final Color SIDEBAR_COLOR = new Color(255, 255, 255);
+    private final List<JButton> primaryButtons = new ArrayList<>();
 
     public PlaylistPanel(SongRepository songRepository, PlaylistService playlistService) {
         this.songRepository = songRepository;
         this.playlistService = playlistService;
 
-        setBackground(BG_COLOR);
         setLayout(new BorderLayout());
         buildUI();
         loadPlaylists();
+
+        updateThemeColors();
+    }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        if (sidebarPanel != null) {
+            updateThemeColors();
+        }
+    }
+
+    private void updateThemeColors() {
+        sidebarPanel.setBackground(AppTheme.sidebar());
+        playlistList.setBackground(AppTheme.sidebar());
+
+        Color textColor = AppTheme.isDark() ? Color.WHITE : Color.BLACK;
+        Color subTextColor = AppTheme.isDark() ? Color.LIGHT_GRAY : Color.DARK_GRAY;
+
+        sidebarTitle.setForeground(textColor);
+
+        Color contentBg = AppTheme.isDark() ? UIManager.getColor("Panel.background") : Color.WHITE;
+        mainPanel.setBackground(contentBg);
+        mainHeader.setBackground(contentBg);
+
+        mainTitle.setForeground(textColor);
+
+        for (JButton btn : primaryButtons) {
+            btn.setBackground(AppTheme.accent());
+        }
+
+        repaint();
     }
 
     private void buildUI() {
         playlistList = new JList<>(playlistModel);
         playlistList.setFixedCellHeight(30);
-        playlistList.setBackground(SIDEBAR_COLOR);
+
         playlistList.setCellRenderer(createPlaylistRenderer());
 
-        JPanel sidebarPanel = new JPanel(new BorderLayout());
-        sidebarPanel.setBackground(SIDEBAR_COLOR);
+        sidebarPanel = new JPanel(new BorderLayout());
+
         sidebarPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, new Color(220, 220, 220)));
 
         JPanel sidebarActions = new JPanel(new GridLayout(1, 3, 5, 5));
         sidebarActions.setOpaque(false);
         sidebarActions.setBorder(new EmptyBorder(5, 5, 10, 5));
+
         sidebarActions.add(createPrimaryButton("+ New", _ -> createPlaylist()));
         sidebarActions.add(createSecondaryButton("Edit", _ -> editPlaylist()));
         sidebarActions.add(createSecondaryButton("Delete", _ -> deleteSelectedPlaylist()));
 
-        JLabel sidebarTitle = new JLabel(" My Playlists");
+        sidebarTitle = new JLabel(" My Playlists");
         sidebarTitle.setFont(new Font("SansSerif", Font.BOLD, 16));
         sidebarTitle.setBorder(new EmptyBorder(0, 10, 0, 0));
 
@@ -74,11 +113,9 @@ public class PlaylistPanel extends JPanel {
         songList.setFixedCellHeight(45);
         songList.setCellRenderer(createSongRenderer());
 
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(Color.WHITE);
+        mainPanel = new JPanel(new BorderLayout());
 
-        JPanel mainHeader = new JPanel(new BorderLayout());
-        mainHeader.setBackground(Color.WHITE);
+        mainHeader = new JPanel(new BorderLayout());
         mainHeader.setBorder(new EmptyBorder(15, 20, 10, 20));
 
         mainTitle = new JLabel("No playlist selected...");
@@ -119,14 +156,21 @@ public class PlaylistPanel extends JPanel {
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
 
-                label.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)), BorderFactory.createEmptyBorder(5, 15, 5, 15)));
+                Color dividerColor = UIManager.getColor("App.dividerColor");
 
-                if (value instanceof String artist) {
-                    label.setText(artist);
+                label.setBorder(new CompoundBorder(new MatteBorder(0, 0, 1, 0, dividerColor), new EmptyBorder(5, 15, 5, 15)));
+
+                if (value instanceof Playlist p) {
+                    label.setText(p.name());
                 }
 
-                label.setBackground(isSelected ? new Color(199, 221, 253) : SIDEBAR_COLOR);
-                label.setForeground(isSelected ? Color.BLACK : Color.DARK_GRAY);
+                if (isSelected) {
+                    label.setBackground(AppTheme.selection());
+                    label.setForeground(AppTheme.isDark() ? Color.WHITE : Color.BLACK);
+                } else {
+                    label.setBackground(AppTheme.sidebar());
+                    label.setForeground(AppTheme.isDark() ? Color.LIGHT_GRAY : Color.DARK_GRAY);
+                }
 
                 label.setFont(new Font("SansSerif", Font.BOLD, 13));
                 label.setOpaque(true);
@@ -141,14 +185,28 @@ public class PlaylistPanel extends JPanel {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JPanel p = new JPanel(new BorderLayout());
-                p.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)), new EmptyBorder(5, 20, 5, 20)));
-                p.setBackground(isSelected ? new Color(199, 221, 253) : Color.WHITE);
+
+                Color dividerColor = UIManager.getColor("App.dividerColor");
+
+                Color normalBg = AppTheme.isDark() ? UIManager.getColor("List.background") : Color.WHITE;
+                p.setBackground(isSelected ? AppTheme.selection() : normalBg);
+
+                p.setBorder(new CompoundBorder(new MatteBorder(0, 0, 1, 0, dividerColor), new EmptyBorder(5, 20, 5, 20)));
 
                 if (value instanceof Song s) {
                     JLabel title = new JLabel(s.title());
                     title.setFont(new Font("SansSerif", Font.BOLD, 13));
+
+                    String titleHex = AppTheme.isDark() ? (isSelected ? "ffffff" : "dddddd") : "000000";
+                    title.setForeground(AppTheme.isDark() ? (isSelected ? Color.WHITE : new Color(220, 220, 220)) : Color.BLACK);
+
                     JLabel info = new JLabel(s.artist() + " • " + s.formatTime(s.durationInSeconds()));
-                    info.setForeground(Color.GRAY);
+
+                    Color infoColor;
+                    if (isSelected) infoColor = AppTheme.isDark() ? Color.LIGHT_GRAY : Color.DARK_GRAY;
+                    else infoColor = Color.GRAY;
+
+                    info.setForeground(infoColor);
 
                     p.add(title, BorderLayout.WEST);
                     p.add(info, BorderLayout.EAST);
@@ -165,7 +223,7 @@ public class PlaylistPanel extends JPanel {
         btn.putClientProperty("JButton.buttonType", "square");
         btn.putClientProperty("JButton.arc", 0);
 
-        btn.setBackground(ACCENT_COLOR);
+        btn.setBackground(AppTheme.accent());
         btn.setForeground(Color.WHITE);
         btn.setFont(new Font("SansSerif", Font.BOLD, 13));
 
@@ -173,6 +231,8 @@ public class PlaylistPanel extends JPanel {
 
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
+
+        primaryButtons.add(btn);
 
         return btn;
     }
@@ -191,14 +251,6 @@ public class PlaylistPanel extends JPanel {
         btn.setOpaque(true);
         btn.setFocusPainted(false);
 
-        return btn;
-    }
-
-    private JButton createMiniButton(String text, ActionListener listener) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("SansSerif", Font.PLAIN, 10));
-        btn.setMargin(new Insets(2, 2, 2, 2));
-        btn.addActionListener(listener);
         return btn;
     }
 
@@ -311,8 +363,7 @@ public class PlaylistPanel extends JPanel {
             return;
         }
 
-        if (selectedPlaylist != null && selectedSong != null) {
-
+        if (selectedPlaylist != null) {
             int confirm = JOptionPane.showConfirmDialog(this, "Remove '" + selectedSong.title() + "' from '" + selectedPlaylist.name() + "'?", "Confirm", JOptionPane.YES_NO_OPTION);
 
             if (confirm == JOptionPane.YES_OPTION) {
