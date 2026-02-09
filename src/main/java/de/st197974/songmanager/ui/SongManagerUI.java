@@ -20,11 +20,16 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.PlainDocument;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class SongManagerUI extends JFrame {
     private static final Logger logger = LogManager.getLogger(SongManagerUI.class);
@@ -403,11 +408,7 @@ public class SongManagerUI extends JFrame {
                     JLabel rightLabel = new JLabel((isFav ? "★ " : "") + song.formatTime(song.durationInSeconds()));
                     rightLabel.setFont(new Font("Monospaced", Font.BOLD, 12));
 
-                    Color timeColor;
-                    if (isFav) timeColor = new Color(255, 153, 0);
-                    else timeColor = AppTheme.isDark() ? Color.LIGHT_GRAY : Color.DARK_GRAY;
-
-                    if (isSelected && !isFav) timeColor = Color.WHITE;
+                    Color timeColor = isFav ? new Color(255, 153, 0) : (isSelected ? (AppTheme.isDark() ? Color.WHITE : Color.BLACK) : (AppTheme.isDark() ? Color.LIGHT_GRAY : Color.DARK_GRAY));
 
                     rightLabel.setForeground(timeColor);
 
@@ -603,13 +604,18 @@ public class SongManagerUI extends JFrame {
     private void showSongForm(Song songToEdit) {
         boolean isEdit = (songToEdit != null);
         JTextField titleField = new JTextField(isEdit ? songToEdit.title() : "", 15);
+        setCharacterLimit(titleField, 50);
         silenceBackspace(titleField);
         JTextField albumField = new JTextField(isEdit ? songToEdit.album() : "", 15);
+        setCharacterLimit(albumField, 50);
         silenceBackspace(albumField);
         JTextField artistField = new JTextField(isEdit ? songToEdit.artist() : "", 15);
+        setCharacterLimit(artistField, 50);
         silenceBackspace(artistField);
-        JTextField durationField = new JTextField(isEdit ? String.valueOf(songToEdit.durationInSeconds()) : "", 15);
+        JTextField durationField = new JTextField(isEdit ? songToEdit.formatTime(songToEdit.durationInSeconds()) : "", 15);
+        setCharacterLimit(durationField, 30);
         silenceBackspace(durationField);
+
         JLabel errorLabel = new JLabel(" ");
         errorLabel.setForeground(Color.RED);
         errorLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
@@ -621,19 +627,22 @@ public class SongManagerUI extends JFrame {
         panel.add(artistField);
         panel.add(new JLabel(" Album: "));
         panel.add(albumField);
-        panel.add(new JLabel(" Duration (in s): "));
+        panel.add(new JLabel(" Duration (seconds or H:MM:SS / M:SS): "));
         panel.add(durationField);
         panel.add(errorLabel);
 
         boolean valid = false;
         while (!valid) {
             int result = JOptionPane.showConfirmDialog(this, panel, isEdit ? "Edit Song" : "Add New Song", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
             if (result == JOptionPane.OK_OPTION) {
                 try {
                     String title = titleField.getText().trim();
                     String album = albumField.getText().trim();
                     String artist = artistField.getText().trim();
-                    int duration = Integer.parseInt(durationField.getText().trim());
+                    String durationInput = durationField.getText().trim();
+
+                    int duration = parseDurationToSeconds(durationInput);
 
                     if (isEdit) {
                         Song updatedSong = new Song(songToEdit.id(), title, album, artist, duration);
@@ -642,17 +651,56 @@ public class SongManagerUI extends JFrame {
                         discographyService.addSongSafely(new Song(title, album, artist, duration));
                         if (tabbedPane != null) tabbedPane.setSelectedIndex(0);
                     }
+
                     loadArtists(artist);
                     loadSongs(artist);
                     logger.info("{} song: {}", isEdit ? "Updated" : "Added", title);
                     valid = true;
-                } catch (NumberFormatException e) {
-                    errorLabel.setText(" Please enter a valid number for duration!");
+                } catch (IllegalArgumentException e) {
+                    errorLabel.setText(" Please enter a valid duration format!");
                 }
             } else {
                 valid = true;
             }
         }
+    }
+
+    private int parseDurationToSeconds(String input) {
+
+        if (input.matches("\\d+")) {
+            return Integer.parseInt(input);
+        }
+
+        Pattern pattern = Pattern.compile("^(?:(\\d{1,2}):)?(\\d{1,2}):(\\d{1,2})$");
+        Matcher matcher = pattern.matcher(input);
+
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("Invalid duration format!");
+        }
+
+        int hours = matcher.group(1) != null ? Integer.parseInt(matcher.group(1)) : 0;
+        int minutes = Integer.parseInt(matcher.group(2));
+        int seconds = Integer.parseInt(matcher.group(3));
+        return hours * 3600 + minutes * 60 + seconds;
+    }
+
+    private void setCharacterLimit(JTextField textField, int limit) {
+        textField.setDocument(new PlainDocument() {
+
+            @Override
+            public void insertString(int offs, String str, AttributeSet a) throws BadLocationException {
+                if (str == null) return;
+                if ((getLength() + str.length()) <= limit) {
+                    super.insertString(offs, str, a);
+                } else {
+                    int allowed = limit - getLength();
+                    if (allowed > 0) {
+                        super.insertString(offs, str.substring(0, allowed), a);
+                    }
+                }
+            }
+
+        });
     }
 
     private void silenceBackspace(JTextField textField) {
@@ -696,7 +744,6 @@ public class SongManagerUI extends JFrame {
                 JMenuItem addToPlaylist = new JMenuItem("Add to Playlist...");
                 addToPlaylist.addActionListener(_ -> showPlaylistSelectionDialog(selectedSong));
                 popupMenu.add(addToPlaylist);
-                popupMenu.addSeparator();
 
                 if (favoritesService.isFavorite(selectedSong.id())) {
                     JMenuItem removeFromFavorites = new JMenuItem("Remove from Favorites");
@@ -707,6 +754,15 @@ public class SongManagerUI extends JFrame {
                     addToFavorites.addActionListener(_ -> addSongToFavorites(selectedSong));
                     popupMenu.add(addToFavorites);
                 }
+                popupMenu.addSeparator();
+
+                JMenuItem editSong = new JMenuItem("Edit Song");
+                editSong.addActionListener(_ -> editSelectedSong());
+                popupMenu.add(editSong);
+
+                JMenuItem deleteSong = new JMenuItem("Delete Song");
+                deleteSong.addActionListener(_ -> deleteSelectedSong());
+                popupMenu.add(deleteSong);
             }
 
             @Override

@@ -51,8 +51,7 @@ public class SQLiteSongRepository implements SongRepository {
                 );
                 """;
 
-        try (Connection conn = DriverManager.getConnection(URL);
-             Statement statement = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(URL); Statement statement = conn.createStatement()) {
 
             statement.execute(sqlSongs);
             statement.execute(sqlPlaylistSongs);
@@ -93,18 +92,10 @@ public class SQLiteSongRepository implements SongRepository {
         List<Song> songs = new ArrayList<>();
         String sql = "SELECT * FROM songs";
 
-        try (Connection conn = DriverManager.getConnection(URL);
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conn = DriverManager.getConnection(URL); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                Song song = new Song(
-                        rs.getString("id"),
-                        rs.getString("title"),
-                        rs.getString("album"),
-                        rs.getString("artist"),
-                        rs.getInt("duration")
-                );
+                Song song = new Song(rs.getString("id"), rs.getString("title"), rs.getString("album"), rs.getString("artist"), rs.getInt("duration"));
                 songs.add(song);
             }
         } catch (SQLException e) {
@@ -117,20 +108,13 @@ public class SQLiteSongRepository implements SongRepository {
     public Song findByID(String id) {
         String sql = "SELECT * FROM songs WHERE id = ?";
 
-        try (Connection conn = DriverManager.getConnection(URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DriverManager.getConnection(URL); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, id);
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                return new Song(
-                        rs.getString("id"),
-                        rs.getString("title"),
-                        rs.getString("album"),
-                        rs.getString("artist"),
-                        rs.getInt("duration")
-                );
+                return new Song(rs.getString("id"), rs.getString("title"), rs.getString("album"), rs.getString("artist"), rs.getInt("duration"));
             }
         } catch (SQLException e) {
             logger.error("Error while searching for song with ID: {}", id, e);
@@ -144,20 +128,13 @@ public class SQLiteSongRepository implements SongRepository {
         List<Song> songs = new ArrayList<>();
         String sql = "SELECT * FROM songs WHERE LOWER(artist) = LOWER(?)";
 
-        try (Connection conn = DriverManager.getConnection(URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DriverManager.getConnection(URL); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, artist);
             ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {
-                Song song = new Song(
-                        rs.getString("id"),
-                        rs.getString("title"),
-                        rs.getString("album"),
-                        rs.getString("artist"),
-                        rs.getInt("duration")
-                );
+                Song song = new Song(rs.getString("id"), rs.getString("title"), rs.getString("album"), rs.getString("artist"), rs.getInt("duration"));
                 songs.add(song);
             }
 
@@ -173,8 +150,7 @@ public class SQLiteSongRepository implements SongRepository {
     public void deleteByID(String id) {
         String sql = "DELETE FROM songs WHERE id = ?";
 
-        try (Connection conn = DriverManager.getConnection(URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DriverManager.getConnection(URL); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, id);
             int deletedRows = pstmt.executeUpdate();
