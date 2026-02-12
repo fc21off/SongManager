@@ -22,6 +22,8 @@ public class Main {
         FavoritesService favoritesService = new FavoritesService(favoritesRepository, discographyService);
         StatsService statsService = new StatsService(discographyService, favoritesService);
 
+        discographyService.cleanupInvalidSongs();
+
         SwingUtilities.invokeLater(() -> new SongManagerUI(discographyService, playlistService, favoritesService, statsService));
 
     }

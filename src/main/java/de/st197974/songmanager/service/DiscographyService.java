@@ -77,10 +77,12 @@ public record DiscographyService(SongRepository repository) {
     public List<String> getAllArtists() {
         return repository.findAll().stream()
                 .map(Song::artist)
+                .filter(a -> a != null && !a.isBlank())
                 .distinct()
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .toList();
     }
+
 
     public List<Song> getSongsByArtist(String artist) {
         return repository.findByArtist(artist);
@@ -121,6 +123,11 @@ public record DiscographyService(SongRepository repository) {
 
     public Song getSongById(String id) {
         return repository.findByID(id);
+    }
+
+    public void cleanupInvalidSongs() {
+        repository.deleteInvalidSongs();
+        logger.info("Restarted Song Repository and cleaned up invalid songs.");
     }
 
 }

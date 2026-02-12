@@ -145,7 +145,6 @@ public class SQLiteSongRepository implements SongRepository {
         return songs;
     }
 
-
     @Override
     public void deleteByID(String id) {
         String sql = "DELETE FROM songs WHERE id = ?";
@@ -162,4 +161,24 @@ public class SQLiteSongRepository implements SongRepository {
             logger.error("Error while deleting in SQLite", e);
         }
     }
+
+    public void deleteInvalidSongs() {
+        String sql = """
+                DELETE FROM songs 
+                WHERE title IS NULL OR trim(title) = '' 
+                   OR artist IS NULL OR trim(artist) = ''
+                """;
+
+        try (Connection conn = DriverManager.getConnection(URL);
+             Statement stmt = conn.createStatement()) {
+
+            int affectedRows = stmt.executeUpdate(sql);
+            if (affectedRows > 0) {
+                logger.info("Cleanup complete: {} invalid songs removed.", affectedRows);
+            }
+        } catch (SQLException e) {
+            logger.error("Error during SQL cleanup", e);
+        }
+    }
+
 }

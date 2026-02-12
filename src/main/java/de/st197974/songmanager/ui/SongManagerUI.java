@@ -603,18 +603,28 @@ public class SongManagerUI extends JFrame {
 
     private void showSongForm(Song songToEdit) {
         boolean isEdit = (songToEdit != null);
-        JTextField titleField = new JTextField(isEdit ? songToEdit.title() : "", 15);
+
+        JTextField titleField = new JTextField(15);
+        JTextField albumField = new JTextField(15);
+        JTextField artistField = new JTextField(15);
+        JTextField durationField = new JTextField(15);
+
         setCharacterLimit(titleField, 50);
-        silenceBackspace(titleField);
-        JTextField albumField = new JTextField(isEdit ? songToEdit.album() : "", 15);
         setCharacterLimit(albumField, 50);
-        silenceBackspace(albumField);
-        JTextField artistField = new JTextField(isEdit ? songToEdit.artist() : "", 15);
         setCharacterLimit(artistField, 50);
-        silenceBackspace(artistField);
-        JTextField durationField = new JTextField(isEdit ? songToEdit.formatTime(songToEdit.durationInSeconds()) : "", 15);
         setCharacterLimit(durationField, 30);
+
+        silenceBackspace(titleField);
+        silenceBackspace(albumField);
+        silenceBackspace(artistField);
         silenceBackspace(durationField);
+
+        if (isEdit) {
+            titleField.setText(songToEdit.title());
+            artistField.setText(songToEdit.artist());
+            albumField.setText(songToEdit.album());
+            durationField.setText(songToEdit.formatTime(songToEdit.durationInSeconds()));
+        }
 
         JLabel errorLabel = new JLabel(" ");
         errorLabel.setForeground(Color.RED);
@@ -642,18 +652,27 @@ public class SongManagerUI extends JFrame {
                     String artist = artistField.getText().trim();
                     String durationInput = durationField.getText().trim();
 
+                    if(title.isEmpty() || artist.isEmpty() || durationInput.isEmpty()) {
+                        errorLabel.setText(" Please fill in all necessary fields! (Title, Artist, Duration) ");
+                        continue;
+                    }
+
                     int duration = parseDurationToSeconds(durationInput);
 
+                    Song updatedSong;
+
                     if (isEdit) {
-                        Song updatedSong = new Song(songToEdit.id(), title, album, artist, duration);
+                        updatedSong = new Song(songToEdit.id(), title, album, artist, duration);
                         discographyService.updateSongSafely(updatedSong);
                     } else {
-                        discographyService.addSongSafely(new Song(title, album, artist, duration));
+                        updatedSong = new Song(title, album, artist, duration);
+                        discographyService.addSongSafely(updatedSong);
                         if (tabbedPane != null) tabbedPane.setSelectedIndex(0);
                     }
 
                     loadArtists(artist);
                     loadSongs(artist);
+                    songList.setSelectedValue(updatedSong, true);
                     logger.info("{} song: {}", isEdit ? "Updated" : "Added", title);
                     valid = true;
                 } catch (IllegalArgumentException e) {
@@ -685,6 +704,7 @@ public class SongManagerUI extends JFrame {
     }
 
     private void setCharacterLimit(JTextField textField, int limit) {
+        String existingText = textField.getText();
         textField.setDocument(new PlainDocument() {
 
             @Override
@@ -701,6 +721,7 @@ public class SongManagerUI extends JFrame {
             }
 
         });
+        textField.setText(existingText);
     }
 
     private void silenceBackspace(JTextField textField) {

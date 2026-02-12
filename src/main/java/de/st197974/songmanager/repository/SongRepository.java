@@ -16,4 +16,6 @@ public interface SongRepository {
 
     void deleteByID(String id);
 
+    void deleteInvalidSongs();
+
 }
