@@ -2,10 +2,7 @@ package de.st197974.songmanager.ui;
 
 import de.st197974.songmanager.model.Playlist;
 import de.st197974.songmanager.model.Song;
-import de.st197974.songmanager.service.DiscographyService;
-import de.st197974.songmanager.service.FavoritesService;
-import de.st197974.songmanager.service.PlaylistService;
-import de.st197974.songmanager.service.StatsService;
+import de.st197974.songmanager.service.*;
 import de.st197974.songmanager.ui.panels.MultiEditPanel;
 import de.st197974.songmanager.ui.panels.FavoritesPanel;
 import de.st197974.songmanager.ui.panels.PlaylistPanel;
@@ -20,6 +17,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.PopupMenuEvent;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.PlainDocument;
@@ -31,6 +29,11 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * The SongManagerUI class provides a user interface for managing songs, playlists, favorites, artists, and playback statistics.
+ * It extends JFrame and incorporates various panels, components, and services to enable seamless interaction
+ * with the application's core functionalities.
+ */
 public class SongManagerUI extends JFrame {
     private static final Logger logger = LogManager.getLogger(SongManagerUI.class);
 
@@ -40,6 +43,7 @@ public class SongManagerUI extends JFrame {
     private final PlaylistService playlistService;
     private final FavoritesService favoritesService;
     private final StatsService statsService;
+    private final ArtistService artistService;
 
     private final DefaultListModel<String> artistModel = new DefaultListModel<>();
     private final DefaultListModel<Song> songModel = new DefaultListModel<>();
@@ -66,7 +70,7 @@ public class SongManagerUI extends JFrame {
     private JTextField artistSearchField;
     private JToggleButton darkModeToggle;
 
-    public SongManagerUI(DiscographyService discographyService, PlaylistService playlistService, FavoritesService favoritesService, StatsService statsService) {
+    public SongManagerUI(DiscographyService discographyService, PlaylistService playlistService, FavoritesService favoritesService, StatsService statsService, ArtistService artistService) {
 
         AppTheme.applyLightTheme();
 
@@ -74,6 +78,7 @@ public class SongManagerUI extends JFrame {
         this.playlistService = playlistService;
         this.favoritesService = favoritesService;
         this.statsService = statsService;
+        this.artistService = artistService;
 
         setTitle("SongManager 3.0");
         setSize(1200, 800);
@@ -106,7 +111,7 @@ public class SongManagerUI extends JFrame {
 
         playlistPanel = new PlaylistPanel(discographyService.repository(), playlistService);
         favoritesPanel = new FavoritesPanel(favoritesService);
-        multiEditPanel = new MultiEditPanel(discographyService);
+        multiEditPanel = new MultiEditPanel(discographyService, favoritesService, this);
         statsPanel = new StatsPanel(statsService);
 
         JPanel topBar = new JPanel(new BorderLayout());
@@ -202,6 +207,7 @@ public class SongManagerUI extends JFrame {
         add(footer, BorderLayout.SOUTH);
 
         setupSongListContextMenu();
+        setUpArtistContextMenu();
     }
 
     private void updateUIColors() {
@@ -404,8 +410,10 @@ public class SongManagerUI extends JFrame {
                     JLabel titleLabel = new JLabel("<html><b><font color='" + titleColor + "'>" + song.title() + "</font></b><br><font color='" + subColor + "'>" + song.artist() + (song.album().isEmpty() ? "" : " • " + song.album()) + "</font></html>");
                     titleLabel.setFont(MAIN_FONT);
 
+                    boolean isPlaceholder = song == EMPTY_SONG_PLACEHOLDER;
+
                     boolean isFav = favoritesService.isFavorite(song.id());
-                    JLabel rightLabel = new JLabel((isFav ? "★ " : "") + song.formatTime(song.durationInSeconds()));
+                    JLabel rightLabel = new JLabel(isPlaceholder ? "" : (isFav ? "★ " : "") + song.formatTime(song.durationInSeconds()));
                     rightLabel.setFont(new Font("Monospaced", Font.BOLD, 12));
 
                     Color timeColor = isFav ? new Color(255, 153, 0) : (isSelected ? (AppTheme.isDark() ? Color.WHITE : Color.BLACK) : (AppTheme.isDark() ? Color.LIGHT_GRAY : Color.DARK_GRAY));
@@ -568,40 +576,63 @@ public class SongManagerUI extends JFrame {
     }
 
     private void editSelectedSong() {
-        if (tabbedPane != null && tabbedPane.getSelectedIndex() >= 1) {
-            JOptionPane.showMessageDialog(this, "Unable to EDIT here!\n" + "Please switch to 'Library' to manage the main library.", "Action Not Allowed", JOptionPane.WARNING_MESSAGE);
+        int currentTab = tabbedPane.getSelectedIndex();
+        Song s = null;
+
+        if (currentTab == 0) {
+            s = songList.getSelectedValue();
+        } else if (currentTab == 3) {
+            s = multiEditPanel.getSelectedSongFromTable();
+        } else {
+            JOptionPane.showMessageDialog(this, "Editing is only allowed in 'Library' or 'Multi Edit'.", "Action Not Allowed", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        Song s = songList.getSelectedValue();
+
         if (s == null || s == EMPTY_SONG_PLACEHOLDER) {
-            JOptionPane.showMessageDialog(this, "Select a song first!");
+            JOptionPane.showMessageDialog(this, "Please select a song first!");
             return;
         }
+
         showSongForm(s);
+
+        if (currentTab == 3) multiEditPanel.loadAllSongs();
     }
 
     private void deleteSelectedSong() {
-        if (tabbedPane != null && tabbedPane.getSelectedIndex() >= 1) {
-            JOptionPane.showMessageDialog(this, "Unable to DELETE here!\n" + "Please switch to 'Library' to manage the main library.", "Action Not Allowed", JOptionPane.WARNING_MESSAGE);
+        int currentTab = tabbedPane.getSelectedIndex();
+        Song s = null;
+
+        if (currentTab == 0) {
+            s = songList.getSelectedValue();
+        } else if (currentTab == 3) {
+            s = multiEditPanel.getSelectedSongFromTable();
+        } else {
+            JOptionPane.showMessageDialog(this, "Deleting is only allowed in 'Library' or 'Multi Edit'.", "Action Not Allowed", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        Song s = songList.getSelectedValue();
+
         if (s == null || s == EMPTY_SONG_PLACEHOLDER) {
-            JOptionPane.showMessageDialog(this, "Select a song first!");
+            JOptionPane.showMessageDialog(this, "Please select a song first!");
             return;
         }
-        int confirm = JOptionPane.showConfirmDialog(this, "Delete '" + s.title() + "'?", "Confirm", JOptionPane.YES_NO_OPTION);
+
+        int confirm = JOptionPane.showConfirmDialog(this, "Delete '" + s.title() + "'?", "Confirm Delete", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             String currentArtist = s.artist();
             discographyService.deleteSong(s.id());
-            loadSongs(s.artist());
-            loadArtists(null);
-            if (artistModel.contains(currentArtist)) loadSongs(currentArtist);
+
+            if (currentTab == 0) {
+                loadArtists(null);
+                if (artistModel.contains(currentArtist)) loadSongs(currentArtist);
+            } else {
+                multiEditPanel.loadAllSongs();
+            }
+
             logger.info("Deleted song {}", s.title());
         }
     }
 
-    private void showSongForm(Song songToEdit) {
+    public void showSongForm(Song songToEdit) {
         boolean isEdit = (songToEdit != null);
 
         JTextField titleField = new JTextField(15);
@@ -637,7 +668,7 @@ public class SongManagerUI extends JFrame {
         panel.add(artistField);
         panel.add(new JLabel(" Album: "));
         panel.add(albumField);
-        panel.add(new JLabel(" Duration (seconds or H:MM:SS / M:SS): "));
+        panel.add(new JLabel(" Duration: "));
         panel.add(durationField);
         panel.add(errorLabel);
 
@@ -652,7 +683,7 @@ public class SongManagerUI extends JFrame {
                     String artist = artistField.getText().trim();
                     String durationInput = durationField.getText().trim();
 
-                    if(title.isEmpty() || artist.isEmpty() || durationInput.isEmpty()) {
+                    if (title.isEmpty() || artist.isEmpty() || durationInput.isEmpty()) {
                         errorLabel.setText(" Please fill in all necessary fields! (Title, Artist, Duration) ");
                         continue;
                     }
@@ -684,6 +715,77 @@ public class SongManagerUI extends JFrame {
         }
     }
 
+    public void showSongFormOnArtist(String presetArtist) {
+        JTextField titleField = new JTextField(15);
+        JTextField albumField = new JTextField(15);
+        JTextField artistField = new JTextField(15);
+        JTextField durationField = new JTextField(15);
+
+        setCharacterLimit(titleField, 50);
+        setCharacterLimit(albumField, 50);
+        setCharacterLimit(artistField, 50);
+        setCharacterLimit(durationField, 30);
+
+        silenceBackspace(titleField);
+        silenceBackspace(albumField);
+        silenceBackspace(artistField);
+        silenceBackspace(durationField);
+
+        artistField.setText(presetArtist);
+        artistField.setEditable(false);
+
+        JLabel errorLabel = new JLabel(" ");
+        errorLabel.setForeground(Color.RED);
+        errorLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
+
+        JPanel panel = new JPanel(new GridLayout(0, 1, 2, 2));
+        panel.add(new JLabel(" Title: "));
+        panel.add(titleField);
+        panel.add(new JLabel(" Artist: "));
+        panel.add(artistField);
+        panel.add(new JLabel(" Album: "));
+        panel.add(albumField);
+        panel.add(new JLabel(" Duration: "));
+        panel.add(durationField);
+        panel.add(errorLabel);
+
+        boolean valid = false;
+        while (!valid) {
+            int result = JOptionPane.showConfirmDialog(this, panel, "Add New Song to " + presetArtist, JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+            if (result == JOptionPane.OK_OPTION) {
+                try {
+                    String title = titleField.getText().trim();
+                    String album = albumField.getText().trim();
+                    String artist = artistField.getText().trim();
+                    String durationInput = durationField.getText().trim();
+
+                    if (title.isEmpty() || durationInput.isEmpty()) {
+                        errorLabel.setText(" Please fill in all necessary fields! (Title, Duration) ");
+                        continue;
+                    }
+
+                    int duration = parseDurationToSeconds(durationInput);
+
+                    Song newSong = new Song(title, album, artist, duration);
+                    discographyService.addSongSafely(newSong);
+
+                    if (tabbedPane != null) tabbedPane.setSelectedIndex(0);
+                    loadArtists(artist);
+                    loadSongs(artist);
+                    songList.setSelectedValue(newSong, true);
+
+                    logger.info("Added new song '{}' to artist '{}'", title, artist);
+                    valid = true;
+                } catch (IllegalArgumentException e) {
+                    errorLabel.setText(" Please enter a valid duration format!");
+                }
+            } else {
+                valid = true;
+            }
+        }
+    }
+
     private int parseDurationToSeconds(String input) {
 
         if (input.matches("\\d+")) {
@@ -700,6 +802,11 @@ public class SongManagerUI extends JFrame {
         int hours = matcher.group(1) != null ? Integer.parseInt(matcher.group(1)) : 0;
         int minutes = Integer.parseInt(matcher.group(2));
         int seconds = Integer.parseInt(matcher.group(3));
+
+        if (minutes >= 60 || seconds >= 60) {
+            throw new IllegalArgumentException("Invalid duration format!");
+        }
+
         return hours * 3600 + minutes * 60 + seconds;
     }
 
@@ -805,6 +912,75 @@ public class SongManagerUI extends JFrame {
         });
     }
 
+    private void setUpArtistContextMenu() {
+        JPopupMenu popupMenu = new JPopupMenu();
+
+        artistList.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    int index = artistList.locationToIndex(e.getPoint());
+                    if (index != -1) {
+                        artistList.setSelectedIndex(index);
+                    }
+                }
+            }
+        });
+
+        artistList.setComponentPopupMenu(popupMenu);
+
+        popupMenu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+            @Override
+            public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {
+                popupMenu.removeAll();
+
+                String thisArtist = artistList.getSelectedValue();
+                if (thisArtist == null || thisArtist.startsWith(" No Result")) return;
+
+                JMenuItem addSongItem = new JMenuItem("Add Song to '" + thisArtist + "'");
+                addSongItem.addActionListener(ae -> showSongFormOnArtist(thisArtist));
+                popupMenu.add(addSongItem);
+                popupMenu.addSeparator();
+
+                JMenuItem editNameItem = new JMenuItem("Edit Artist Name");
+                editNameItem.addActionListener(ae -> {
+
+                    String newName = JOptionPane.showInputDialog(
+                            SongManagerUI.this,
+                            "Rename artist '" + thisArtist + "' to:",
+                            thisArtist
+                    );
+
+                    if (newName != null && !newName.isBlank() && !newName.equals(thisArtist)) {
+                        artistService.renameArtist(thisArtist, newName);
+                        loadArtists(newName);
+                    }
+                });
+                popupMenu.add(editNameItem);
+
+                JMenuItem deleteItem = new JMenuItem("Delete Artist");
+                deleteItem.addActionListener(ae -> {
+                    int confirm = JOptionPane.showConfirmDialog(
+                            SongManagerUI.this,
+                            "Delete artist '" + thisArtist + "' and all associated songs?",
+                            "Confirm Delete",
+                            JOptionPane.YES_NO_OPTION,
+                            JOptionPane.WARNING_MESSAGE
+                    );
+
+                    if (confirm == JOptionPane.YES_OPTION) {
+                        artistService.deleteArtist(thisArtist);
+                        loadArtists(null);
+                    }
+                });
+                popupMenu.add(deleteItem);
+            }
+
+            @Override public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {}
+            @Override public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) {}
+        });
+    }
+
     private void showPlaylistSelectionDialog(Song song) {
         List<Playlist> playlists = playlistService.getAllPlaylists();
         if (playlists.isEmpty()) {
@@ -852,4 +1028,16 @@ public class SongManagerUI extends JFrame {
         favoritesService.removeFavorite(selectedSong.id());
         if (tabbedPane != null && favoritesPanel != null) favoritesPanel.loadFavorites();
     }
+
+    public void navigateToSong(Song song) {
+        tabbedPane.setSelectedIndex(0);
+
+        artistList.setSelectedValue(song.artist(), true);
+
+        SwingUtilities.invokeLater(() -> {
+            songList.setSelectedValue(song, true);
+            songList.ensureIndexIsVisible(songList.getSelectedIndex());
+        });
+    }
+
 }

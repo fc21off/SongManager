@@ -6,6 +6,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Provides statistical analysis and operations for songs and favorites.
+ * <p>
+ * The StatsService class aggregates data from two primary services:
+ * DiscographyService and FavoritesService. It provides methods for
+ * retrieving high-level information, such as the total number of songs,
+ * average duration, and total number of favorite songs.
+ * <p>
+ * Responsibilities include:
+ * - Aggregating and summarizing data on songs and favorites.
+ * - Calculating statistics, such as the total duration and average song length.
+ * - Grouping songs by artist and managing song counts.
+ */
 public record StatsService(DiscographyService discographyService, FavoritesService favoritesService) {
 
     public List<Song> getAllSongs() {

@@ -2,6 +2,10 @@ package de.st197974.songmanager.model;
 
 import java.util.UUID;
 
+/**
+ * Represents a song with details such as title, album, artist, and duration.
+ * Provides methods to format and display the song's information.
+ */
 public record Song(String id, String title, String album, String artist, int durationInSeconds) {
 
     public Song(String title, String album, String artist, int durationInSeconds) {

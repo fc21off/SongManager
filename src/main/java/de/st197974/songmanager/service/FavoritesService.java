@@ -10,6 +10,23 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Service for managing users' favorite songs. This includes adding, removing,
+ * toggling, and retrieving favorites, as well as sorting the favorite songs
+ * by various attributes.
+ * <p>
+ * Responsibilities:
+ * - Add a song to the list of favorites.
+ * - Remove a song from the list of favorites.
+ * - Check if a song is marked as a favorite.
+ * - Retrieve all favorite song IDs.
+ * - Retrieve all favorite songs with detailed information.
+ * - Toggle the favorite status of a song.
+ * - Sort favorite songs alphabetically, by artist, or by duration.
+ * <p>
+ * This service uses a FavoritesRepository to store favorite song IDs
+ * and a DiscographyService to retrieve song details.
+ */
 public record FavoritesService(FavoritesRepository repository, DiscographyService service) {
 
     private static final Logger logger = LogManager.getLogger(FavoritesService.class);

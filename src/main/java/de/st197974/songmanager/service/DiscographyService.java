@@ -8,6 +8,16 @@ import org.apache.logging.log4j.Logger;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * Provides services for managing and querying a discography of songs.
+ * Encapsulates functionality for retrieving, sorting, and manipulating songs stored in a repository.
+ * <p>
+ * Responsibilities include:
+ * - Filtering and retrieving songs based on properties such as album, artist, or duration.
+ * - Adding, updating, and deleting songs while performing validations and logging actions.
+ * - Sorting songs by different attributes (e.g., title, album, duration).
+ * - Managing operations specific to albums and artists.
+ */
 public record DiscographyService(SongRepository repository) {
 
     private static final Logger logger = LogManager.getLogger(DiscographyService.class);

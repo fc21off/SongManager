@@ -8,6 +8,10 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 
+/**
+ * Provides services for managing playlists, including operations to create, update, delete,
+ * and retrieve playlists, as well as functionality to manage songs within playlists.
+ */
 public record PlaylistService(PlaylistRepository repository) {
 
     private static final Logger logger = LogManager.getLogger(PlaylistService.class);

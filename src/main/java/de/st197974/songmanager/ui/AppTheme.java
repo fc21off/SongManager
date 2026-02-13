@@ -7,6 +7,11 @@ import com.formdev.flatlaf.FlatLightLaf;
 import javax.swing.*;
 import java.awt.*;
 
+/**
+ * Utility class for managing and applying application themes.
+ * This class provides methods to toggle between dark and light themes
+ * and retrieve common custom colors defined for each theme.
+ */
 public final class AppTheme {
 
     private AppTheme() {}

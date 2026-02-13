@@ -2,11 +2,14 @@ package de.st197974.songmanager.ui.panels;
 
 import de.st197974.songmanager.model.Song;
 import de.st197974.songmanager.service.DiscographyService;
+import de.st197974.songmanager.service.FavoritesService;
 import de.st197974.songmanager.ui.AppTheme;
+import de.st197974.songmanager.ui.SongManagerUI;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
@@ -15,20 +18,29 @@ import java.util.List;
 public class MultiEditPanel extends JPanel {
 
     private final DiscographyService discographyService;
+    private final FavoritesService favoritesService;
+
+    private final SongManagerUI mainUI;
+
     private JTable songTable;
     private DefaultTableModel tableModel;
     private JScrollPane scrollPane;
     private JLabel titleLabel;
 
+    private JButton cleanupButton;
+
     private final List<JButton> primaryButtons = new ArrayList<>();
 
-    public MultiEditPanel(DiscographyService discographyService) {
+    public MultiEditPanel(DiscographyService discographyService, FavoritesService favoritesService, SongManagerUI mainUI) {
         this.discographyService = discographyService;
+        this.favoritesService = favoritesService;
+        this.mainUI = mainUI;
 
         setLayout(new BorderLayout(15, 15));
         setBorder(new EmptyBorder(20, 20, 20, 20));
 
         buildUI();
+        setupTableContextMenu();
 
         updateThemeColors();
     }
@@ -92,8 +104,17 @@ public class MultiEditPanel extends JPanel {
         actionButtons.add(createSecondaryButton("Find Duplicates", _ -> highlightDuplicates()));
         actionButtons.add(createSecondaryButton("Refresh List", _ -> loadAllSongs()));
 
+        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        footerPanel.setOpaque(false);
+
+        cleanupButton = createCleanupButton("Cleanup Duplicates", _ -> autoCleanup());
+        cleanupButton.setVisible(false);
+
         headerPanel.add(actionButtons, BorderLayout.EAST);
+        footerPanel.add(cleanupButton);
+
         add(headerPanel, BorderLayout.NORTH);
+        add(footerPanel, BorderLayout.SOUTH);
 
         String[] columns = {"ID", "Title", "Artist", "Album", "Duration"};
         tableModel = new DefaultTableModel(columns, 0) {
@@ -105,6 +126,9 @@ public class MultiEditPanel extends JPanel {
 
         songTable = new JTable(tableModel);
         styleTableStructure();
+
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
+        songTable.setRowSorter(sorter);
 
         scrollPane = new JScrollPane(songTable);
 
@@ -147,6 +171,21 @@ public class MultiEditPanel extends JPanel {
         btn.setPreferredSize(new Dimension(150, 35));
         btn.putClientProperty("JButton.buttonType", "square");
         btn.putClientProperty("JButton.arc", 0);
+        return btn;
+    }
+
+    private JButton createCleanupButton(String text, ActionListener listener) {
+        JButton btn = new JButton(text);
+        btn.addActionListener(listener);
+        btn.putClientProperty("JButton.buttonType", "square");
+        btn.putClientProperty("JButton.arc", 0);
+
+        btn.setBackground(AppTheme.accent());
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("SansSerif", Font.BOLD, 13));
+        btn.setPreferredSize(new Dimension(250, 35));
+
+        primaryButtons.add(btn);
         return btn;
     }
 
@@ -214,6 +253,8 @@ public class MultiEditPanel extends JPanel {
         }
 
         if (duplicateIds.isEmpty()) {
+            cleanupButton.setVisible(false);
+            revalidate();
             JOptionPane.showMessageDialog(this, "No duplicates found! Your library is clean.");
             return;
         }
@@ -225,6 +266,143 @@ public class MultiEditPanel extends JPanel {
             }
         }
 
+        cleanupButton.setVisible(true);
+        revalidate();
+        repaint();
+
         JOptionPane.showMessageDialog(this, "Found " + duplicateIds.size() + " potential duplicates!");
     }
+
+    private void autoCleanup() {
+        List<Song> allSongs = discographyService.getAll();
+
+        java.util.Map<String, List<Song>> groups = allSongs.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                        s -> (s.title() + "|" + s.artist()).toLowerCase().trim()
+                ));
+
+        int deletedCount = 0;
+        for (List<Song> group : groups.values()) {
+            if(group.size() > 1) {
+                Song keepThisOne = group.stream()
+                        .min((s1, s2) -> {
+                            boolean f1 = favoritesService.isFavorite(s1.id());
+                            boolean f2 = favoritesService.isFavorite(s2.id());
+                            if(f1 && !f2) return -1;
+                            if(!f1 && f2) return 1;
+                            return 0;
+                        }).get();
+
+                for(Song s : group) {
+                    if(!s.id().equals(keepThisOne.id())) {
+                        discographyService.deleteSong(s.id());
+                        deletedCount++;
+                    }
+                }
+
+            }
+        }
+
+        cleanupButton.setVisible(false);
+        loadAllSongs();
+        revalidate();
+        repaint();
+        JOptionPane.showMessageDialog(this, "Deleted " + deletedCount + " duplicates!");
+
+    }
+
+    private void setupTableContextMenu() {
+        JPopupMenu popupMenu = new JPopupMenu();
+
+        JMenuItem showInLibrary = getItem();
+
+        JMenuItem editSong = new JMenuItem("Edit Song");
+        editSong.addActionListener(_ -> {
+            int row = songTable.getSelectedRow();
+            if (row != -1) {
+                int modelRow = songTable.convertRowIndexToModel(row);
+                String id = (String) tableModel.getValueAt(modelRow, 0);
+                Song s = discographyService.getSongById(id);
+                if (s != null) {
+                    mainUI.showSongForm(s);
+                    loadAllSongs();
+                }
+            }
+        });
+
+        JMenuItem deleteSong = new JMenuItem("Delete Song");
+        deleteSong.addActionListener(_ -> {
+            int row = songTable.getSelectedRow();
+            if (row != -1) {
+                int modelRow = songTable.convertRowIndexToModel(row);
+                String id = (String) tableModel.getValueAt(modelRow, 0);
+                Song s = discographyService.getSongById(id);
+                if (s != null) {
+                    int confirm = JOptionPane.showConfirmDialog(this, "Delete '" + s.title() + "'?", "Confirm", JOptionPane.YES_NO_OPTION);
+                    if (confirm == JOptionPane.YES_OPTION) {
+                        discographyService.deleteSong(s.id());
+                        loadAllSongs();
+                    }
+                }
+            }
+        });
+
+        popupMenu.add(showInLibrary);
+        popupMenu.addSeparator();
+        popupMenu.add(editSong);
+        popupMenu.add(deleteSong);
+
+        songTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                handlePopup(e);
+            }
+
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                handlePopup(e);
+            }
+
+            private void handlePopup(java.awt.event.MouseEvent e) {
+                if (e.isPopupTrigger()) {
+
+                    int row = songTable.rowAtPoint(e.getPoint());
+
+                    if (row != -1) {
+                        songTable.setRowSelectionInterval(row, row);
+
+                        popupMenu.show(e.getComponent(), e.getX(), e.getY());
+                    }
+                }
+            }
+        });
+
+    }
+
+    private JMenuItem getItem() {
+        JMenuItem showInLibrary = new JMenuItem("Show in Library");
+        showInLibrary.addActionListener(_ -> {
+            int row = songTable.getSelectedRow();
+            if (row != -1) {
+                int modelRow = songTable.convertRowIndexToModel(row);
+                String id = (String) tableModel.getValueAt(modelRow, 0);
+                Song s = discographyService.getSongById(id);
+                if (s != null) {
+                    mainUI.navigateToSong(s);
+                }
+            }
+        });
+        return showInLibrary;
+    }
+
+    public Song getSelectedSongFromTable() {
+        int row = songTable.getSelectedRow();
+        if (row != -1) {
+            int modelRow = songTable.convertRowIndexToModel(row);
+            String id = (String) tableModel.getValueAt(modelRow, 0);
+            return discographyService.getSongById(id);
+        }
+        return null;
+    }
+
 }

@@ -1,10 +1,7 @@
 package de.st197974.songmanager;
 
 import de.st197974.songmanager.repository.*;
-import de.st197974.songmanager.service.DiscographyService;
-import de.st197974.songmanager.service.FavoritesService;
-import de.st197974.songmanager.service.PlaylistService;
-import de.st197974.songmanager.service.StatsService;
+import de.st197974.songmanager.service.*;
 import de.st197974.songmanager.ui.SongManagerUI;
 
 import javax.swing.*;
@@ -21,10 +18,11 @@ public class Main {
         PlaylistService playlistService = new PlaylistService(playlistRepository);
         FavoritesService favoritesService = new FavoritesService(favoritesRepository, discographyService);
         StatsService statsService = new StatsService(discographyService, favoritesService);
+        ArtistService artistService = new ArtistService(songRepository);
 
         discographyService.cleanupInvalidSongs();
 
-        SwingUtilities.invokeLater(() -> new SongManagerUI(discographyService, playlistService, favoritesService, statsService));
+        SwingUtilities.invokeLater(() -> new SongManagerUI(discographyService, playlistService, favoritesService, statsService, artistService));
 
     }
 
