@@ -620,6 +620,7 @@ public class SongManagerUI extends JFrame {
         if (confirm == JOptionPane.YES_OPTION) {
             String currentArtist = s.artist();
             discographyService.deleteSong(s.id());
+            favoritesService.removeFavorite(s.id());
 
             if (currentTab == 0) {
                 loadArtists(null);
