@@ -157,8 +157,8 @@ public class SongManagerUI extends JFrame {
         librarySplit.setBackground(new Color(220, 220, 220));
 
         addStyledTab("  Library", librarySplit);
-        addStyledTab("  Playlists  ", playlistPanel);
         addStyledTab("  Favorites  ", favoritesPanel);
+        addStyledTab("  Playlists  ", playlistPanel);
         addStyledTab("  Multi Edit  ", multiEditPanel);
         addStyledTab("  Statistics  ", statsPanel);
 
@@ -620,11 +620,16 @@ public class SongManagerUI extends JFrame {
         if (confirm == JOptionPane.YES_OPTION) {
             String currentArtist = s.artist();
             discographyService.deleteSong(s.id());
-            favoritesService.removeFavorite(s.id());
+
+            if(favoritesService.isFavorite(s.id())) favoritesService.removeFavorite(s.id());
 
             if (currentTab == 0) {
                 loadArtists(null);
-                if (artistModel.contains(currentArtist)) loadSongs(currentArtist);
+                if (artistModel.contains(currentArtist)) {
+                    loadSongs(currentArtist);
+                }else {
+                    loadSongs(null);
+                }
             } else {
                 multiEditPanel.loadAllSongs();
             }
