@@ -101,6 +101,7 @@ public class MultiEditPanel extends JPanel {
 
         actionButtons.add(createPrimaryButton("Set Artist", _ -> applyMultiEdit("Artist")));
         actionButtons.add(createPrimaryButton("Set Album", _ -> applyMultiEdit("Album")));
+        actionButtons.add(createSecondaryButton("Delete Selected", _ -> deleteSelectedSongs()));
         actionButtons.add(createSecondaryButton("Find Duplicates", _ -> highlightDuplicates()));
         actionButtons.add(createSecondaryButton("Refresh List", _ -> loadAllSongs()));
 
@@ -283,18 +284,18 @@ public class MultiEditPanel extends JPanel {
 
         int deletedCount = 0;
         for (List<Song> group : groups.values()) {
-            if(group.size() > 1) {
+            if (group.size() > 1) {
                 Song keepThisOne = group.stream()
                         .min((s1, s2) -> {
                             boolean f1 = favoritesService.isFavorite(s1.id());
                             boolean f2 = favoritesService.isFavorite(s2.id());
-                            if(f1 && !f2) return -1;
-                            if(!f1 && f2) return 1;
+                            if (f1 && !f2) return -1;
+                            if (!f1 && f2) return 1;
                             return 0;
                         }).get();
 
-                for(Song s : group) {
-                    if(!s.id().equals(keepThisOne.id())) {
+                for (Song s : group) {
+                    if (!s.id().equals(keepThisOne.id())) {
                         discographyService.deleteSong(s.id());
                         deletedCount++;
                     }
@@ -403,6 +404,31 @@ public class MultiEditPanel extends JPanel {
             return discographyService.getSongById(id);
         }
         return null;
+    }
+
+    private void deleteSelectedSongs() {
+        int[] selectedRows = songTable.getSelectedRows();
+
+        if (selectedRows.length == 0) {
+            JOptionPane.showMessageDialog(this, "Select Songs first!");
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(this, "Delete " + selectedRows.length + " songs?", "Confirm", JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            for (int row : selectedRows) {
+                int modelRow = songTable.convertRowIndexToModel(row);
+                String id = (String) tableModel.getValueAt(modelRow, 0);
+
+                discographyService.deleteSong(id);
+            }
+
+            loadAllSongs();
+            JOptionPane.showMessageDialog(this, "Deleted " + selectedRows.length + " songs!");
+
+        }
+
     }
 
 }

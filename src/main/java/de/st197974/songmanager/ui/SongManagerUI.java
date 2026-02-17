@@ -23,6 +23,7 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.PlainDocument;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.FileFilter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -82,6 +83,8 @@ public class SongManagerUI extends JFrame {
 
         setTitle("SongManager 3.0");
         setSize(1200, 800);
+        setMinimumSize(new Dimension(1070, 600));
+        setMaximumSize(new Dimension(1920, 1080));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         setLayout(new BorderLayout());
@@ -141,15 +144,24 @@ public class SongManagerUI extends JFrame {
         songSearchField.setPreferredSize(new Dimension(200, 30));
         songHeader.add(songSearchField, BorderLayout.CENTER);
 
+        JPanel bottomUtilities = new JPanel(new BorderLayout());
+
         JPanel sortActions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         sortActions.setOpaque(false);
         sortActions.add(createSortButton("Sort A-Z", _ -> sortSongsAlphabetically(artistList.getSelectedValue())));
         sortActions.add(createSortButton("Album", _ -> sortSongsByAlbum()));
         sortActions.add(createSortButton("Duration", _ -> sortSongsByDuration()));
 
+        JPanel importButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        importButtonPanel.setOpaque(false);
+        importButtonPanel.add(createSortButton("Import", _ -> importSongsFromFile()));
+
+        bottomUtilities.add(importButtonPanel, BorderLayout.WEST);
+        bottomUtilities.add(sortActions, BorderLayout.EAST);
+
         mainContent.add(songHeader, BorderLayout.NORTH);
         mainContent.add(new JScrollPane(songList), BorderLayout.CENTER);
-        mainContent.add(sortActions, BorderLayout.SOUTH);
+        mainContent.add(bottomUtilities, BorderLayout.SOUTH);
 
         librarySplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, sidebar, mainContent);
         librarySplit.setDividerLocation(250);
@@ -432,7 +444,14 @@ public class SongManagerUI extends JFrame {
         int idx = tabbedPane.getSelectedIndex();
         statusBar.setVisible(idx == 0);
         switch (idx) {
-            case 0 -> loadArtists(artistList.getSelectedValue());
+            case 0 -> {
+                loadArtists(artistList.getSelectedValue());
+                if (artistList.getSelectedValue() != null) {
+                    loadSongs(artistList.getSelectedValue());
+                } else {
+                    loadSongs(null);
+                }
+            }
             case 1 -> {
                 if (playlistPanel != null) playlistPanel.loadPlaylists();
             }
@@ -621,13 +640,13 @@ public class SongManagerUI extends JFrame {
             String currentArtist = s.artist();
             discographyService.deleteSong(s.id());
 
-            if(favoritesService.isFavorite(s.id())) favoritesService.removeFavorite(s.id());
+            if (favoritesService.isFavorite(s.id())) favoritesService.removeFavorite(s.id());
 
             if (currentTab == 0) {
                 loadArtists(null);
                 if (artistModel.contains(currentArtist)) {
                     loadSongs(currentArtist);
-                }else {
+                } else {
                     loadSongs(null);
                 }
             } else {
@@ -897,6 +916,13 @@ public class SongManagerUI extends JFrame {
                 JMenuItem deleteSong = new JMenuItem("Delete Song");
                 deleteSong.addActionListener(_ -> deleteSelectedSong());
                 popupMenu.add(deleteSong);
+
+                popupMenu.addSeparator();
+                JMenuItem importOptionItem = new JMenuItem("Import from File");
+                importOptionItem.addActionListener(ae -> {
+                    importSongsFromFile();
+                });
+                popupMenu.add(importOptionItem);
             }
 
             @Override
@@ -980,10 +1006,23 @@ public class SongManagerUI extends JFrame {
                     }
                 });
                 popupMenu.add(deleteItem);
+
+                popupMenu.addSeparator();
+
+                JMenuItem importOptionItem = new JMenuItem("Import from File");
+                importOptionItem.addActionListener(ae -> {
+                    importSongsFromFile();
+                });
+                popupMenu.add(importOptionItem);
             }
 
-            @Override public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {}
-            @Override public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) {}
+            @Override
+            public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {
+            }
+
+            @Override
+            public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) {
+            }
         });
     }
 
@@ -1044,6 +1083,46 @@ public class SongManagerUI extends JFrame {
             songList.setSelectedValue(song, true);
             songList.ensureIndexIsVisible(songList.getSelectedIndex());
         });
+    }
+
+    private void importSongsFromFile() {
+        FileDialog dialog = new FileDialog(this, "Import Songs from Text File", FileDialog.LOAD);
+        dialog.setFile("*.txt");
+        dialog.setVisible(true);
+
+        String file = dialog.getFile();
+        if (file == null) return;
+
+        java.io.File selectedFile =
+                new java.io.File(dialog.getDirectory(), file);
+
+        try {
+            List<String> lines =
+                    java.nio.file.Files.readAllLines(selectedFile.toPath());
+
+            int count = discographyService.importSongsFromLines(lines);
+
+            loadArtists(null);
+            loadSongs(null);
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    count + " Songs imported successfully!"
+            );
+
+            logger.info("Imported {} songs from file: {}",
+                    count, selectedFile.getName());
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Error reading file: " + e.getMessage(),
+                    "Import Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+
+            logger.error("Import failed", e);
+        }
     }
 
 }

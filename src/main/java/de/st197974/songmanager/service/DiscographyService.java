@@ -140,4 +140,96 @@ public record DiscographyService(SongRepository repository) {
         logger.info("Restarted Song Repository and cleaned up invalid songs.");
     }
 
+    // Logik für Textdatei imports damit ich den überblick behalte der kommentar hier (temporär)
+
+    public int importSongsFromLines(List<String> lines) {
+        int importedCount = 0;
+        for (String line : lines) {
+            if (line == null || line.trim().isEmpty()) continue;
+
+            Song song = parseSmartLine(line);
+            if (song != null) {
+                addSongSafely(song);
+                importedCount++;
+            }
+        }
+        return importedCount;
+    }
+
+    private Song parseSmartLine(String line) {
+        try {
+
+            String cleanLine = line.trim();
+
+            String durationRegex = "(?:\\s+|\\s*[,.-]\\s*)(\\d{1,2}:\\d{2}|\\d{2,4})\\s*$";
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(durationRegex);
+            java.util.regex.Matcher matcher = pattern.matcher(cleanLine);
+
+            int duration = 0;
+            String textPart = cleanLine;
+
+            if (matcher.find()) {
+                String durationString = matcher.group(1);
+                duration = parseDurationInternal(durationString);
+
+                textPart = cleanLine.substring(0, matcher.start()).trim();
+            }
+
+            String separator = detectSeparator(textPart);
+
+            if (separator == null) return new Song(textPart, "", "Unknown Artist", duration);
+
+            String[] parts = textPart.split(separator);
+
+            for (int i = 0; i < parts.length; i++) {
+                parts[i] = parts[i].trim();
+            }
+
+            String title = parts.length > 0 ? parts[0] : "Unknown Title";
+            String artist = parts.length > 1 ? parts[1] : "Unknown Artist";
+            String album = parts.length > 2 ? parts[2] : "";
+
+            return new Song(title, album, artist, duration);
+
+        } catch (Exception e) {
+            logger.error("Error parsing line: {}", line);
+            return null;
+        }
+    }
+
+    private String detectSeparator(String text) {
+        int commas = countOccurrences(text, ',');
+        int dashes = countOccurrences(text, '-');
+        int vertLines = countOccurrences(text, '|');
+
+        int dots = text.split("\\s\\.\\s").length - 1;
+
+        if (commas >= 1) return "\\,";
+        if (dashes >= 1) return "-";
+        if (vertLines >= 1) return "|";
+        if (dots >= 1) return "\\s\\.\\s";
+        return null;
+    }
+
+    private int countOccurrences(String text, char c) {
+        int count = 0;
+        for (char ch : text.toCharArray()) {
+            if (ch == c) count++;
+        }
+        return count;
+    }
+
+    private int parseDurationInternal(String input) {
+        if (input.matches("\\d+")) {
+            return Integer.parseInt(input);
+        }
+        String[] parts = input.split(":");
+        if (parts.length == 2) {
+            int min = Integer.parseInt(parts[0]);
+            int sec = Integer.parseInt(parts[1]);
+            return min * 60 + sec;
+        }
+        return 0;
+    }
+
 }
