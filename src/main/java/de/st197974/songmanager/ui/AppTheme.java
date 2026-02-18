@@ -52,8 +52,8 @@ public final class AppTheme {
     private static void applyCommonColors(boolean darkMode) {
 
         UIManager.put("App.accentColor",
-                darkMode ? new Color(90, 170, 255)
-                        : new Color(44, 154, 255));
+                darkMode ? new Color(118, 117, 226)
+                        : new Color(113, 179, 223));
 
         UIManager.put("App.dangerColor",
                 darkMode ? new Color(255, 110, 110)
@@ -64,7 +64,7 @@ public final class AppTheme {
                         : Color.WHITE);
 
         UIManager.put("App.selectionColor",
-                darkMode ? new Color(60, 110, 180)
+                darkMode ? new Color(146, 145, 251)
                         : new Color(199, 221, 253));
 
         UIManager.put("App.dividerColor",

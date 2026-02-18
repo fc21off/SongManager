@@ -17,13 +17,14 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.event.PopupMenuEvent;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.PlainDocument;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.FileFilter;
+import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -39,6 +40,18 @@ public class SongManagerUI extends JFrame {
     private static final Logger logger = LogManager.getLogger(SongManagerUI.class);
 
     private final Font MAIN_FONT = new Font("SansSerif", Font.PLAIN, 13);
+
+    private ImageIcon appIcon;
+
+    private ImageIcon loadAppicon() {
+        URL url = getClass().getResource("/icon4.png");
+        if (url == null) {
+            logger.error("Icon not found!.");
+            return null;
+        }
+        return new ImageIcon(url);
+    }
+
 
     private final DiscographyService discographyService;
     private final PlaylistService playlistService;
@@ -71,6 +84,9 @@ public class SongManagerUI extends JFrame {
     private JTextField artistSearchField;
     private JToggleButton darkModeToggle;
 
+
+    private Path DESKTOP_PATH = Paths.get(System.getProperty("user.home"), "Desktop", "Discograph_Export.txt");
+
     public SongManagerUI(DiscographyService discographyService, PlaylistService playlistService, FavoritesService favoritesService, StatsService statsService, ArtistService artistService) {
 
         AppTheme.applyLightTheme();
@@ -81,11 +97,14 @@ public class SongManagerUI extends JFrame {
         this.statsService = statsService;
         this.artistService = artistService;
 
-        setTitle("SongManager 3.0");
+        setTitle("Discograph");
         setSize(1200, 800);
-        setMinimumSize(new Dimension(1070, 600));
+        setMinimumSize(new Dimension(1070, 700));
         setMaximumSize(new Dimension(1920, 1080));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        this.appIcon = loadAppicon();
+        if (appIcon != null) setIconImage(appIcon.getImage());
 
         setLayout(new BorderLayout());
 
@@ -99,6 +118,7 @@ public class SongManagerUI extends JFrame {
     }
 
     private void buildCenter() {
+
         tabbedPane = new JTabbedPane();
         tabbedPane.setFont(new Font("SansSerif", Font.BOLD, 12));
 
@@ -155,6 +175,7 @@ public class SongManagerUI extends JFrame {
         JPanel importButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         importButtonPanel.setOpaque(false);
         importButtonPanel.add(createSortButton("Import", _ -> importSongsFromFile()));
+        importButtonPanel.add(createSortButton("Export", _ -> exportSongsToFile(DESKTOP_PATH)));
 
         bottomUtilities.add(importButtonPanel, BorderLayout.WEST);
         bottomUtilities.add(sortActions, BorderLayout.EAST);
@@ -211,11 +232,14 @@ public class SongManagerUI extends JFrame {
         statusBar.setBorder(new EmptyBorder(0, 60, 0, 0));
 
         darkModeToggle = createThemeToggle();
-        darkModeToggle.setBorder(new CompoundBorder(new EmptyBorder(5, 0, 5, 10), darkModeToggle.getBorder()));
+
+        JPanel toggleContainer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 20, 12));
+        toggleContainer.setOpaque(false);
+        toggleContainer.add(darkModeToggle);
 
         footer.add(actionButtons, BorderLayout.WEST);
         footer.add(statusBar, BorderLayout.CENTER);
-        footer.add(darkModeToggle, BorderLayout.EAST);
+        footer.add(toggleContainer, BorderLayout.EAST);
         add(footer, BorderLayout.SOUTH);
 
         setupSongListContextMenu();
@@ -241,13 +265,10 @@ public class SongManagerUI extends JFrame {
 
             if (c instanceof JLabel lbl) {
                 boolean isSelected = (i == selectedIndex);
-
                 if (isSelected) {
-
                     lbl.setForeground(AppTheme.isDark() ? new Color(100, 180, 255) : new Color(16, 148, 255));
                     lbl.setFont(lbl.getFont().deriveFont(Font.BOLD));
                 } else {
-
                     lbl.setForeground(AppTheme.isDark() ? Color.LIGHT_GRAY : new Color(100, 100, 100));
                     lbl.setFont(lbl.getFont().deriveFont(Font.PLAIN));
                 }
@@ -259,44 +280,95 @@ public class SongManagerUI extends JFrame {
         }
 
         for (JTextField field : styledTextFields) {
-            field.setBorder(BorderFactory.createCompoundBorder(new LineBorder(new Color(200, 200, 200), 1), new EmptyBorder(5, 12, 5, 12)));
-
+            field.setBorder(BorderFactory.createCompoundBorder(
+                    new LineBorder(new Color(200, 200, 200), 1),
+                    new EmptyBorder(5, 12, 5, 12)
+            ));
             field.setBackground(AppTheme.isDark() ? new Color(60, 63, 65) : new Color(238, 238, 240));
-
             field.setForeground(AppTheme.isDark() ? Color.WHITE : Color.BLACK);
             field.setCaretColor(AppTheme.isDark() ? Color.WHITE : Color.BLACK);
         }
 
-        Color toggleBorderColor = Color.GRAY;
-        Color toggleTextColor = AppTheme.isDark() ? Color.WHITE : Color.BLACK;
+        if (darkModeToggle != null) {
+            Color toggleBg = AppTheme.accent();
 
-        darkModeToggle.setBorder(new CompoundBorder(new EmptyBorder(0, 0, 0, 0), BorderFactory.createLineBorder(toggleBorderColor, 1)));
-        darkModeToggle.setForeground(toggleTextColor);
+            darkModeToggle.setBackground(toggleBg);
+
+            darkModeToggle.putClientProperty("JButton.selectedBackground", toggleBg);
+
+            darkModeToggle.setSelected(AppTheme.isDark());
+
+            Color toggleTextColor = AppTheme.isDark() ? Color.WHITE : Color.BLACK;
+            darkModeToggle.setForeground(toggleTextColor);
+
+            Color toggleBorderColor = Color.GRAY;
+            darkModeToggle.setBorder(new CompoundBorder(
+                    new EmptyBorder(0, 0, 0, 0),
+                    BorderFactory.createLineBorder(toggleBorderColor, 1)
+            ));
+        }
 
         this.repaint();
     }
 
     private JToggleButton createThemeToggle() {
-        JToggleButton toggle = new JToggleButton(AppTheme.isDark() ? "☀" : "\uD83C\uDF19");
-        toggle.setSelected(AppTheme.isDark());
-
-        toggle.setPreferredSize(new Dimension(60, 25));
-
-        toggle.putClientProperty("JButton.buttonType", "square");
-        toggle.putClientProperty("JButton.arc", 50);
-        toggle.setBackground(UIManager.getColor("App.accentColor"));
-
-        toggle.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        toggle.setOpaque(true);
-        toggle.setFocusPainted(false);
-
-        toggle.addActionListener(_ -> {
+        darkModeToggle = new ModernToggleSwitch();
+        darkModeToggle.addActionListener(e -> {
             AppTheme.toggleTheme();
-            toggle.setText(AppTheme.isDark() ? "☀" : "\uD83C\uDF19");
             updateUIColors();
         });
-        return toggle;
+        return darkModeToggle;
+    }
+
+    class ModernToggleSwitch extends JToggleButton {
+        public ModernToggleSwitch() {
+            setSelected(AppTheme.isDark());
+
+            Dimension size = new Dimension(55, 28);
+            setPreferredSize(size);
+            setMinimumSize(size);
+            setMaximumSize(size);
+
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
+            setOpaque(false);
+            setFocusPainted(false);
+            setBorderPainted(false);
+            setContentAreaFilled(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int w = 55;
+            int h = 28;
+
+            Color bg = isSelected() ? new Color(118, 117, 226) : new Color(131, 196, 255);
+            g2.setColor(bg);
+            g2.fillRoundRect(0, 0, w, h, h, h);
+
+            int gap = 3;
+            int knobSize = h - (gap * 2);
+            int x = isSelected() ? w - knobSize - gap : gap;
+
+            g2.setColor(new Color(0, 0, 0, 30));
+            g2.fillOval(x + 1, gap + 1, knobSize, knobSize);
+
+            g2.setColor(Color.WHITE);
+            g2.fillOval(x, gap, knobSize, knobSize);
+
+            g2.setFont(new Font("SansSerif", Font.BOLD, 10));
+            String icon = isSelected() ? "☾" : "☀";
+            FontMetrics fm = g2.getFontMetrics();
+            int iconX = x + (knobSize - fm.stringWidth(icon)) / 2;
+            int iconY = gap + (knobSize - fm.getHeight()) / 2 + fm.getAscent();
+
+            g2.setColor(isSelected() ? new Color(118, 117, 226) : Color.ORANGE);
+            g2.drawString(icon, iconX, iconY);
+
+            g2.dispose();
+        }
     }
 
     private JTextField createStyledTextField() {
@@ -453,10 +525,10 @@ public class SongManagerUI extends JFrame {
                 }
             }
             case 1 -> {
-                if (playlistPanel != null) playlistPanel.loadPlaylists();
+                if (favoritesPanel != null) favoritesPanel.loadFavorites();
             }
             case 2 -> {
-                if (favoritesPanel != null) favoritesPanel.loadFavorites();
+                if (playlistPanel != null) playlistPanel.loadPlaylists();
             }
             case 3 -> {
                 if (multiEditPanel != null) multiEditPanel.loadAllSongs();
@@ -909,6 +981,10 @@ public class SongManagerUI extends JFrame {
                 }
                 popupMenu.addSeparator();
 
+                JMenuItem showSongInfo = new JMenuItem("Show Info");
+                showSongInfo.addActionListener(_ -> showSongInfo());
+                popupMenu.add(showSongInfo);
+
                 JMenuItem editSong = new JMenuItem("Edit Song");
                 editSong.addActionListener(_ -> editSelectedSong());
                 popupMenu.add(editSong);
@@ -917,12 +993,22 @@ public class SongManagerUI extends JFrame {
                 deleteSong.addActionListener(_ -> deleteSelectedSong());
                 popupMenu.add(deleteSong);
 
+                JMenuItem duplicateSong = new JMenuItem("Duplicate Song");
+                duplicateSong.addActionListener(_ -> duplicateSong(selectedSong));
+                popupMenu.add(duplicateSong);
+
                 popupMenu.addSeparator();
                 JMenuItem importOptionItem = new JMenuItem("Import from File");
-                importOptionItem.addActionListener(ae -> {
+                importOptionItem.addActionListener(_ -> {
                     importSongsFromFile();
                 });
                 popupMenu.add(importOptionItem);
+
+                JMenuItem exportOptionItem = new JMenuItem("Export to File");
+                exportOptionItem.addActionListener(_ -> {
+                    exportSongsToFile(DESKTOP_PATH);
+                });
+                popupMenu.add(exportOptionItem);
             }
 
             @Override
@@ -970,12 +1056,12 @@ public class SongManagerUI extends JFrame {
                 if (thisArtist == null || thisArtist.startsWith(" No Result")) return;
 
                 JMenuItem addSongItem = new JMenuItem("Add Song to '" + thisArtist + "'");
-                addSongItem.addActionListener(ae -> showSongFormOnArtist(thisArtist));
+                addSongItem.addActionListener(_ -> showSongFormOnArtist(thisArtist));
                 popupMenu.add(addSongItem);
                 popupMenu.addSeparator();
 
                 JMenuItem editNameItem = new JMenuItem("Edit Artist Name");
-                editNameItem.addActionListener(ae -> {
+                editNameItem.addActionListener(_ -> {
 
                     String newName = JOptionPane.showInputDialog(
                             SongManagerUI.this,
@@ -991,7 +1077,7 @@ public class SongManagerUI extends JFrame {
                 popupMenu.add(editNameItem);
 
                 JMenuItem deleteItem = new JMenuItem("Delete Artist");
-                deleteItem.addActionListener(ae -> {
+                deleteItem.addActionListener(_ -> {
                     int confirm = JOptionPane.showConfirmDialog(
                             SongManagerUI.this,
                             "Delete artist '" + thisArtist + "' and all associated songs?",
@@ -1003,6 +1089,7 @@ public class SongManagerUI extends JFrame {
                     if (confirm == JOptionPane.YES_OPTION) {
                         artistService.deleteArtist(thisArtist);
                         loadArtists(null);
+                        loadSongs(null);
                     }
                 });
                 popupMenu.add(deleteItem);
@@ -1010,10 +1097,14 @@ public class SongManagerUI extends JFrame {
                 popupMenu.addSeparator();
 
                 JMenuItem importOptionItem = new JMenuItem("Import from File");
-                importOptionItem.addActionListener(ae -> {
+                importOptionItem.addActionListener(_ -> {
                     importSongsFromFile();
                 });
                 popupMenu.add(importOptionItem);
+
+                JMenuItem exportOptionItem = new JMenuItem("Export to File");
+                exportOptionItem.addActionListener(_ -> exportSongsToFile(DESKTOP_PATH));
+                popupMenu.add(exportOptionItem);
             }
 
             @Override
@@ -1074,6 +1165,12 @@ public class SongManagerUI extends JFrame {
         if (tabbedPane != null && favoritesPanel != null) favoritesPanel.loadFavorites();
     }
 
+    private void duplicateSong(Song song) {
+        Song newSong = new Song(song.title(), song.album(), song.artist(), song.durationInSeconds());
+        discographyService.addSongSafely(newSong);
+        loadSongs(song.artist());
+    }
+
     public void navigateToSong(Song song) {
         tabbedPane.setSelectedIndex(0);
 
@@ -1102,8 +1199,9 @@ public class SongManagerUI extends JFrame {
 
             int count = discographyService.importSongsFromLines(lines);
 
-            loadArtists(null);
-            loadSongs(null);
+            loadArtists(artistList.getSelectedValue());
+            loadSongs(artistList.getSelectedValue());
+
 
             JOptionPane.showMessageDialog(
                     this,
@@ -1123,6 +1221,31 @@ public class SongManagerUI extends JFrame {
 
             logger.error("Import failed", e);
         }
+
     }
+
+    public void exportSongsToFile(Path path) {
+        ExportStatus success = discographyService.saveExportToFile(path.toString());
+
+
+        switch (success) {
+            case SUCCESS -> {
+                statusBar.setForeground(new Color(0, 150, 0));
+                statusBar.setText("Export successful! Check your Desktop!");
+                JOptionPane.showMessageDialog(this, "Export Successful! It is on your Desktop!");
+            }
+            case EMPTY_LIST -> {
+                statusBar.setForeground(new Color(255, 0, 0));
+                statusBar.setText("Export failed! List Empty!");
+                JOptionPane.showMessageDialog(this, "Export Failed! List is Empty!");
+            }
+            case IO_ERROR -> {
+                statusBar.setForeground(new Color(255, 0, 0));
+                statusBar.setText("Export failed! IO Error!");
+                JOptionPane.showMessageDialog(this, "Export Failed! IO Error!");
+            }
+        }
+    }
+
 
 }

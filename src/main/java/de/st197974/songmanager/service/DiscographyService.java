@@ -5,8 +5,13 @@ import de.st197974.songmanager.repository.SongRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.List;
+
+import static de.st197974.songmanager.service.ExportStatus.*;
 
 /**
  * Provides services for managing and querying a discography of songs.
@@ -140,7 +145,7 @@ public record DiscographyService(SongRepository repository) {
         logger.info("Restarted Song Repository and cleaned up invalid songs.");
     }
 
-    // Logik für Textdatei imports damit ich den überblick behalte der kommentar hier (temporär)
+    // Logik für Textdatei imports/exports
 
     public int importSongsFromLines(List<String> lines) {
         int importedCount = 0;
@@ -230,6 +235,58 @@ public record DiscographyService(SongRepository repository) {
             return min * 60 + sec;
         }
         return 0;
+    }
+
+    public String exportSongsToText() {
+        List<Song> songs = repository.findAll().stream()
+                .sorted(Comparator.comparing(Song::artist, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(Song::album, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(Song::title, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+
+        if (songs.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder sb = getStringBuilder(songs);
+        return sb.toString();
+    }
+
+    private static StringBuilder getStringBuilder(List<Song> songs) {
+        StringBuilder sb = new StringBuilder();
+        String lastArtist = null;
+
+        for(Song song : songs) {
+            if(lastArtist != null && !song.artist().equalsIgnoreCase(lastArtist)) {
+                sb.append(System.lineSeparator());
+            }
+
+            int totalSeconds = song.durationInSeconds();
+            String duration = song.formatTime(totalSeconds);
+
+            sb.append(String.format("%s, %s, %s, %s%n",
+                    song.title(),
+                    song.artist(), song.album(), duration));
+
+            lastArtist = song.artist();
+
+        }
+        return sb;
+    }
+
+    public ExportStatus saveExportToFile(String filePath) {
+        try {
+            String content = this.exportSongsToText();
+
+            if(content.isEmpty()) return EMPTY_LIST;
+
+            Files.writeString(Paths.get(filePath), content);
+            logger.info("Export saved to file: {}", filePath);
+            return SUCCESS;
+        } catch (IOException e) {
+            logger.error("Error saving export to file: {}", filePath, e);
+            return IO_ERROR;
+        }
     }
 
 }

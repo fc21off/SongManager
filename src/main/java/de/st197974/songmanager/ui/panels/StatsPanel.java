@@ -99,8 +99,11 @@ public class StatsPanel extends JPanel {
         int favoritePercentage = total > 0 ? (int) ((totalFavorites * 100) / total) : 0;
         cardsPanel.add(createStatCard("Favorites", favoritePercentage + "% (" + totalFavorites + ")"));
 
-        Map<String, Long> songsPerArtist = service.getSongsPerArtist();
-        songsPerArtist.forEach((artist, count) -> artistListPanel.add(createArtistRow(artist, count, total)));
+        service.getSongsPerArtist().entrySet().stream()
+                        .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                        .forEach(entry -> {
+                                    artistListPanel.add(createArtistRow(entry.getKey(), entry.getValue(), total));
+                                });
 
         revalidate();
         repaint();

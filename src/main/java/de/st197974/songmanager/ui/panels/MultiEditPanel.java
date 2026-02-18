@@ -418,6 +418,13 @@ public class MultiEditPanel extends JPanel {
 
         if (confirm == JOptionPane.YES_OPTION) {
             for (int row : selectedRows) {
+
+                boolean isFav = favoritesService.isFavorite((String) tableModel.getValueAt(songTable.convertRowIndexToModel(row), 0));
+
+                if(isFav) {
+                    favoritesService.removeFavorite((String) tableModel.getValueAt(songTable.convertRowIndexToModel(row), 0));
+                }
+
                 int modelRow = songTable.convertRowIndexToModel(row);
                 String id = (String) tableModel.getValueAt(modelRow, 0);
 

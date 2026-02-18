@@ -7,7 +7,6 @@ import de.st197974.songmanager.ui.AppTheme;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -254,12 +253,21 @@ public class FavoritesPanel extends JPanel {
         return favoriteList.getSelectedValue();
     }
 
+    public void setSelectedFavorite(Song song) {
+        int index = favoriteModel.indexOf(song);
+        favoriteList.setSelectedIndex(index);
+    }
+
     private void sortSongsAlphabetically() {
+        Song selected = getSelectedFavorite();
         updateModel(favoritesService.getFavoritesSortedAlphabetically());
+        if (selected != null) setSelectedFavorite(selected);
     }
 
     private void sortSongsByArtist() {
+        Song selected = getSelectedFavorite();
         updateModel(favoritesService.getFavoritesSortedByArtist());
+        if (selected != null) setSelectedFavorite(selected);
     }
 
     private void updateModel(List<Song> sortedSongs) {
