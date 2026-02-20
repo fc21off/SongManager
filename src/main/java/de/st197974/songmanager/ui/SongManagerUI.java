@@ -1244,7 +1244,7 @@ public class SongManagerUI extends JFrame {
                 case SUCCESS -> {
                     statusBar.setForeground(new Color(0, 150, 0));
                     statusBar.setText("Export successful! Check your Desktop!");
-                    JOptionPane.showMessageDialog(this, "Export Successful! It is on your Desktop!");
+                    JOptionPane.showMessageDialog(this, "Export Successful! Check your Directory!");
                 }
                 case EMPTY_LIST -> {
                     statusBar.setForeground(new Color(255, 0, 0));
