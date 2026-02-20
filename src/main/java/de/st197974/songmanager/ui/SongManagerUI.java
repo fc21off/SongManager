@@ -89,8 +89,6 @@ public class SongManagerUI extends JFrame {
 
     public SongManagerUI(DiscographyService discographyService, PlaylistService playlistService, FavoritesService favoritesService, StatsService statsService, ArtistService artistService) {
 
-        AppTheme.applyLightTheme();
-
         this.discographyService = discographyService;
         this.playlistService = playlistService;
         this.favoritesService = favoritesService;
