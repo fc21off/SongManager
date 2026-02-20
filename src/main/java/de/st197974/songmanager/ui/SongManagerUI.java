@@ -86,8 +86,6 @@ public class SongManagerUI extends JFrame {
     private JTextField artistSearchField;
     private JToggleButton darkModeToggle;
 
-    private Path DESKTOP_PATH = Paths.get(System.getProperty("user.home"), "Desktop", "MusicMaster_Export.txt");
-
     public SongManagerUI(DiscographyService discographyService, PlaylistService playlistService, FavoritesService favoritesService, StatsService statsService, ArtistService artistService) {
 
         this.discographyService = discographyService;
