@@ -164,10 +164,10 @@ public class SQLiteSongRepository implements SongRepository {
 
     public void deleteInvalidSongs() {
         String sql = """
-                DELETE FROM songs
-                WHERE title IS NULL OR trim(title) = ''\s
-                   OR artist IS NULL OR trim(artist) = ''
-               \s""";
+                 DELETE FROM songs
+                 WHERE title IS NULL OR trim(title) = ''\s
+                    OR artist IS NULL OR trim(artist) = ''
+                \s""";
 
         try (Connection conn = DriverManager.getConnection(URL);
              Statement stmt = conn.createStatement()) {
