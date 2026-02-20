@@ -22,6 +22,7 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.PlainDocument;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -173,7 +174,7 @@ public class SongManagerUI extends JFrame {
         JPanel importButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         importButtonPanel.setOpaque(false);
         importButtonPanel.add(createSortButton("Import", _ -> importSongsFromFile()));
-        importButtonPanel.add(createSortButton("Export", _ -> exportSongsToFile(DESKTOP_PATH)));
+        importButtonPanel.add(createSortButton("Export", _ -> exportSongsToFile()));
 
         statusBar.setFont(new Font("SansSerif", Font.PLAIN, 14));
         statusBar.setBorder(new EmptyBorder(0, 60, 0, 0));
@@ -1021,7 +1022,7 @@ public class SongManagerUI extends JFrame {
 
                 JMenuItem exportOptionItem = new JMenuItem("Export to File");
                 exportOptionItem.addActionListener(_ -> {
-                    exportSongsToFile(DESKTOP_PATH);
+                    exportSongsToFile();
                 });
                 popupMenu.add(exportOptionItem);
 
@@ -1105,7 +1106,7 @@ public class SongManagerUI extends JFrame {
                 popupMenu.add(importOptionItem);
 
                 JMenuItem exportOptionItem = new JMenuItem("Export to File");
-                exportOptionItem.addActionListener(_ -> exportSongsToFile(DESKTOP_PATH));
+                exportOptionItem.addActionListener(_ -> exportSongsToFile());
                 popupMenu.add(exportOptionItem);
 
                 popupMenu.addSeparator();
@@ -1229,26 +1230,37 @@ public class SongManagerUI extends JFrame {
 
     }
 
-    public void exportSongsToFile(Path path) {
-        ExportStatus success = discographyService.saveExportToFile(path.toString());
+    public void exportSongsToFile() {
 
-        switch (success) {
-            case SUCCESS -> {
-                statusBar.setForeground(new Color(0, 150, 0));
-                statusBar.setText("Export successful! Check your Desktop!");
-                JOptionPane.showMessageDialog(this, "Export Successful! It is on your Desktop!");
-            }
-            case EMPTY_LIST -> {
-                statusBar.setForeground(new Color(255, 0, 0));
-                statusBar.setText("Export failed! List Empty!");
-                JOptionPane.showMessageDialog(this, "Export Failed! List is Empty!");
-            }
-            case IO_ERROR -> {
-                statusBar.setForeground(new Color(255, 0, 0));
-                statusBar.setText("Export failed! IO Error!");
-                JOptionPane.showMessageDialog(this, "Export Failed! IO Error!");
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Export Songs to Text File");
+        fileChooser.setSelectedFile(new File("MusicMaster_Export.txt"));
+
+        int userSelection = fileChooser.showSaveDialog(this);
+
+        if(userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            ExportStatus success = discographyService.saveExportToFile(fileToSave.getAbsolutePath());
+
+            switch (success) {
+                case SUCCESS -> {
+                    statusBar.setForeground(new Color(0, 150, 0));
+                    statusBar.setText("Export successful! Check your Desktop!");
+                    JOptionPane.showMessageDialog(this, "Export Successful! It is on your Desktop!");
+                }
+                case EMPTY_LIST -> {
+                    statusBar.setForeground(new Color(255, 0, 0));
+                    statusBar.setText("Export failed! List Empty!");
+                    JOptionPane.showMessageDialog(this, "Export Failed! List is Empty!");
+                }
+                case IO_ERROR -> {
+                    statusBar.setForeground(new Color(255, 0, 0));
+                    statusBar.setText("Export failed! IO Error!");
+                    JOptionPane.showMessageDialog(this, "Export Failed! IO Error!");
+                }
             }
         }
+
     }
 
 }
