@@ -26,8 +26,7 @@ public record StatsService(DiscographyService discographyService, FavoritesServi
     }
 
     public Map<String, Long> getSongsPerArtist() {
-        return discographyService.getAll().stream()
-                .collect(Collectors.groupingBy(Song::artist, Collectors.counting()));
+        return discographyService.getAll().stream().collect(Collectors.groupingBy(Song::artist, Collectors.counting()));
     }
 
     public int getTotalSongs() {
@@ -35,9 +34,7 @@ public record StatsService(DiscographyService discographyService, FavoritesServi
     }
 
     public int getTotalDuration() {
-        return discographyService.getAll().stream()
-                .mapToInt(Song::durationInSeconds)
-                .sum();
+        return discographyService.getAll().stream().mapToInt(Song::durationInSeconds).sum();
     }
 
     public int getAverageDuration() {

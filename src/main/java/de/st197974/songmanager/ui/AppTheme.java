@@ -14,7 +14,8 @@ import java.awt.*;
  */
 public final class AppTheme {
 
-    private AppTheme() {}
+    private AppTheme() {
+    }
 
     private static boolean dark = true;
 
@@ -51,25 +52,15 @@ public final class AppTheme {
 
     private static void applyCommonColors(boolean darkMode) {
 
-        UIManager.put("App.accentColor",
-                darkMode ? new Color(118, 117, 226)
-                        : new Color(113, 179, 223));
+        UIManager.put("App.accentColor", darkMode ? new Color(118, 117, 226) : new Color(113, 179, 223));
 
-        UIManager.put("App.dangerColor",
-                darkMode ? new Color(255, 110, 110)
-                        : new Color(200, 60, 60));
+        UIManager.put("App.dangerColor", darkMode ? new Color(255, 110, 110) : new Color(200, 60, 60));
 
-        UIManager.put("App.sidebarColor",
-                darkMode ? new Color(43, 43, 43)
-                        : Color.WHITE);
+        UIManager.put("App.sidebarColor", darkMode ? new Color(43, 43, 43) : Color.WHITE);
 
-        UIManager.put("App.selectionColor",
-                darkMode ? new Color(146, 145, 251)
-                        : new Color(199, 221, 253));
+        UIManager.put("App.selectionColor", darkMode ? new Color(146, 145, 251) : new Color(199, 221, 253));
 
-        UIManager.put("App.dividerColor",
-                darkMode ? new Color(81, 81, 81)
-                        : new Color(220, 220, 220));
+        UIManager.put("App.dividerColor", darkMode ? new Color(81, 81, 81) : new Color(220, 220, 220));
 
 
         UIManager.put("TabbedPane.tabHeight", 40);

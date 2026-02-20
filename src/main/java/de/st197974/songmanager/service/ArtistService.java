@@ -18,8 +18,7 @@ public record ArtistService(SongRepository songRepository) {
             songRepository.deleteByID(s.id());
         }
 
-        logger.info("Deleted artist {} with {} songs",
-                artist, songs.size());
+        logger.info("Deleted artist {} with {} songs", artist, songs.size());
     }
 
     public void renameArtist(String oldName, String newName) {
@@ -28,19 +27,12 @@ public record ArtistService(SongRepository songRepository) {
         List<Song> songs = songRepository.findByArtist(oldName);
 
         for (Song s : songs) {
-            Song updated = new Song(
-                    s.id(),
-                    s.title(),
-                    s.album(),
-                    newName,
-                    s.durationInSeconds()
-            );
+            Song updated = new Song(s.id(), s.title(), s.album(), newName, s.durationInSeconds());
 
             songRepository.save(updated);
         }
 
-        logger.info("Renamed artist {} to {} ({} songs)",
-                oldName, newName, songs.size());
+        logger.info("Renamed artist {} to {} ({} songs)", oldName, newName, songs.size());
     }
 
 }

@@ -25,8 +25,7 @@ public class SQLiteFavoritesRepository implements FavoritesRepository {
     @Override
     public void addFavorite(String songId) {
         String sql = "INSERT OR IGNORE INTO favorites(song_id) VALUES(?)";
-        try (Connection conn = DriverManager.getConnection(URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DriverManager.getConnection(URL); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, songId);
             pstmt.executeUpdate();
             logger.info("Added song {} to favorites", songId);
@@ -38,8 +37,7 @@ public class SQLiteFavoritesRepository implements FavoritesRepository {
     @Override
     public void removeFavorite(String songId) {
         String sql = "DELETE FROM favorites WHERE song_id = ?";
-        try (Connection conn = DriverManager.getConnection(URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DriverManager.getConnection(URL); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, songId);
             pstmt.executeUpdate();
             logger.info("Removed song {} from favorites", songId);
@@ -51,8 +49,7 @@ public class SQLiteFavoritesRepository implements FavoritesRepository {
     @Override
     public boolean isFavorite(String songId) {
         String sql = "SELECT 1 FROM favorites WHERE song_id = ?";
-        try (Connection conn = DriverManager.getConnection(URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DriverManager.getConnection(URL); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, songId);
             ResultSet rs = pstmt.executeQuery();
             return rs.next();
@@ -67,9 +64,7 @@ public class SQLiteFavoritesRepository implements FavoritesRepository {
         List<String> favorites = new ArrayList<>();
         String sql = "SELECT song_id FROM favorites";
 
-        try (Connection conn = DriverManager.getConnection(URL);
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conn = DriverManager.getConnection(URL); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
                 favorites.add(rs.getString("song_id"));

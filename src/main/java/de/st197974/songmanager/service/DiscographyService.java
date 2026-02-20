@@ -28,9 +28,7 @@ public record DiscographyService(SongRepository repository) {
     private static final Logger logger = LogManager.getLogger(DiscographyService.class);
 
     public List<Song> getSongsByAlbum(String albumName) {
-        return repository.findAll().stream()
-                .filter(song -> song.album().equalsIgnoreCase(albumName))
-                .toList();
+        return repository.findAll().stream().filter(song -> song.album().equalsIgnoreCase(albumName)).toList();
     }
 
     public List<Song> getAll() {
@@ -38,10 +36,7 @@ public record DiscographyService(SongRepository repository) {
     }
 
     public int getTotalDurationOfAlbum(String albumName) {
-        return repository.findAll().stream()
-                .filter(song -> song.album().equalsIgnoreCase(albumName))
-                .mapToInt(Song::durationInSeconds)
-                .sum();
+        return repository.findAll().stream().filter(song -> song.album().equalsIgnoreCase(albumName)).mapToInt(Song::durationInSeconds).sum();
     }
 
     public void addSongSafely(Song song) {
@@ -56,17 +51,12 @@ public record DiscographyService(SongRepository repository) {
     }
 
     public String getSongTitleById(String id) {
-        return repository.findAll().stream()
-                .filter(s -> s.id().equals(id))
-                .map(Song::title)
-                .findFirst()
-                .orElse("Unknown Song");
+        return repository.findAll().stream().filter(s -> s.id().equals(id)).map(Song::title).findFirst().orElse("Unknown Song");
     }
 
     public void deleteSong(String id) {
 
-        boolean exists = repository.findAll().stream()
-                .anyMatch(song -> song.id().equals(id));
+        boolean exists = repository.findAll().stream().anyMatch(song -> song.id().equals(id));
 
         if (!exists) return;
         logger.info("Song {} was deleted!", getSongTitleById(id));
@@ -75,27 +65,17 @@ public record DiscographyService(SongRepository repository) {
     }
 
     public List<Song> getAllSortedByAlbum() {
-        return repository.findAll().stream()
-                .sorted(Comparator.comparing(Song::album, String.CASE_INSENSITIVE_ORDER)
-                        .thenComparing(Song::title, String.CASE_INSENSITIVE_ORDER))
-                .toList();
+        return repository.findAll().stream().sorted(Comparator.comparing(Song::album, String.CASE_INSENSITIVE_ORDER).thenComparing(Song::title, String.CASE_INSENSITIVE_ORDER)).toList();
     }
 
     public List<Song> getAllSortedByDuration() {
 
-        return repository.findAll().stream()
-                .sorted(Comparator.comparing(Song::durationInSeconds))
-                .toList();
+        return repository.findAll().stream().sorted(Comparator.comparing(Song::durationInSeconds)).toList();
 
     }
 
     public List<String> getAllArtists() {
-        return repository.findAll().stream()
-                .map(Song::artist)
-                .filter(a -> a != null && !a.isBlank())
-                .distinct()
-                .sorted(String.CASE_INSENSITIVE_ORDER)
-                .toList();
+        return repository.findAll().stream().map(Song::artist).filter(a -> a != null && !a.isBlank()).distinct().sorted(String.CASE_INSENSITIVE_ORDER).toList();
     }
 
 
@@ -104,23 +84,16 @@ public record DiscographyService(SongRepository repository) {
     }
 
     public List<Song> getSongsByArtistSortedByAlbum(String artist) {
-        return repository.findByArtist(artist).stream()
-                .sorted(Comparator.comparing(Song::album, String.CASE_INSENSITIVE_ORDER)
-                        .thenComparing(Song::title, String.CASE_INSENSITIVE_ORDER))
-                .toList();
+        return repository.findByArtist(artist).stream().sorted(Comparator.comparing(Song::album, String.CASE_INSENSITIVE_ORDER).thenComparing(Song::title, String.CASE_INSENSITIVE_ORDER)).toList();
     }
 
     public List<Song> getSongsByArtistSortedByDuration(String artist) {
-        return repository.findByArtist(artist).stream()
-                .sorted(Comparator.comparingInt(Song::durationInSeconds))
-                .toList();
+        return repository.findByArtist(artist).stream().sorted(Comparator.comparingInt(Song::durationInSeconds)).toList();
     }
 
     public List<Song> getSongsAlphabetically(String artist) {
 
-        return repository.findByArtist(artist).stream()
-                .sorted(Comparator.comparing(Song::title, String.CASE_INSENSITIVE_ORDER))
-                .toList();
+        return repository.findByArtist(artist).stream().sorted(Comparator.comparing(Song::title, String.CASE_INSENSITIVE_ORDER)).toList();
 
     }
 
@@ -238,11 +211,7 @@ public record DiscographyService(SongRepository repository) {
     }
 
     public String exportSongsToText() {
-        List<Song> songs = repository.findAll().stream()
-                .sorted(Comparator.comparing(Song::artist, String.CASE_INSENSITIVE_ORDER)
-                        .thenComparing(Song::album, String.CASE_INSENSITIVE_ORDER)
-                        .thenComparing(Song::title, String.CASE_INSENSITIVE_ORDER))
-                .toList();
+        List<Song> songs = repository.findAll().stream().sorted(Comparator.comparing(Song::artist, String.CASE_INSENSITIVE_ORDER).thenComparing(Song::album, String.CASE_INSENSITIVE_ORDER).thenComparing(Song::title, String.CASE_INSENSITIVE_ORDER)).toList();
 
         if (songs.isEmpty()) {
             return "";
@@ -256,17 +225,15 @@ public record DiscographyService(SongRepository repository) {
         StringBuilder sb = new StringBuilder();
         String lastArtist = null;
 
-        for(Song song : songs) {
-            if(lastArtist != null && !song.artist().equalsIgnoreCase(lastArtist)) {
+        for (Song song : songs) {
+            if (lastArtist != null && !song.artist().equalsIgnoreCase(lastArtist)) {
                 sb.append(System.lineSeparator());
             }
 
             int totalSeconds = song.durationInSeconds();
             String duration = song.formatTime(totalSeconds);
 
-            sb.append(String.format("%s, %s, %s, %s%n",
-                    song.title(),
-                    song.artist(), song.album(), duration));
+            sb.append(String.format("%s, %s, %s, %s%n", song.title(), song.artist(), song.album(), duration));
 
             lastArtist = song.artist();
 
@@ -278,7 +245,7 @@ public record DiscographyService(SongRepository repository) {
         try {
             String content = this.exportSongsToText();
 
-            if(content.isEmpty()) return EMPTY_LIST;
+            if (content.isEmpty()) return EMPTY_LIST;
 
             Files.writeString(Paths.get(filePath), content);
             logger.info("Export saved to file: {}", filePath);

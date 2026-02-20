@@ -169,8 +169,7 @@ public class SQLiteSongRepository implements SongRepository {
                     OR artist IS NULL OR trim(artist) = ''
                 \s""";
 
-        try (Connection conn = DriverManager.getConnection(URL);
-             Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(URL); Statement stmt = conn.createStatement()) {
 
             int affectedRows = stmt.executeUpdate(sql);
             if (affectedRows > 0) {

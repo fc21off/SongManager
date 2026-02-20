@@ -277,22 +277,18 @@ public class MultiEditPanel extends JPanel {
     private void autoCleanup() {
         List<Song> allSongs = discographyService.getAll();
 
-        java.util.Map<String, List<Song>> groups = allSongs.stream()
-                .collect(java.util.stream.Collectors.groupingBy(
-                        s -> (s.title() + "|" + s.artist()).toLowerCase().trim()
-                ));
+        java.util.Map<String, List<Song>> groups = allSongs.stream().collect(java.util.stream.Collectors.groupingBy(s -> (s.title() + "|" + s.artist()).toLowerCase().trim()));
 
         int deletedCount = 0;
         for (List<Song> group : groups.values()) {
             if (group.size() > 1) {
-                Song keepThisOne = group.stream()
-                        .min((s1, s2) -> {
-                            boolean f1 = favoritesService.isFavorite(s1.id());
-                            boolean f2 = favoritesService.isFavorite(s2.id());
-                            if (f1 && !f2) return -1;
-                            if (!f1 && f2) return 1;
-                            return 0;
-                        }).get();
+                Song keepThisOne = group.stream().min((s1, s2) -> {
+                    boolean f1 = favoritesService.isFavorite(s1.id());
+                    boolean f2 = favoritesService.isFavorite(s2.id());
+                    if (f1 && !f2) return -1;
+                    if (!f1 && f2) return 1;
+                    return 0;
+                }).get();
 
                 for (Song s : group) {
                     if (!s.id().equals(keepThisOne.id())) {
@@ -422,7 +418,7 @@ public class MultiEditPanel extends JPanel {
                 Song currentSong = discographyService.getSongById((String) tableModel.getValueAt(songTable.convertRowIndexToModel(row), 0));
                 boolean isFav = favoritesService.isFavorite(currentSong.id());
 
-                if(isFav) {
+                if (isFav) {
                     favoritesService.removeFavorite((String) tableModel.getValueAt(songTable.convertRowIndexToModel(row), 0));
                 }
 

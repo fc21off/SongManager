@@ -32,8 +32,7 @@ public record PlaylistService(PlaylistRepository repository) {
 
     public void deletePlaylist(String id) {
 
-        boolean exists = repository.findAll().stream()
-                .anyMatch(playlist -> playlist.id().equals(id));
+        boolean exists = repository.findAll().stream().anyMatch(playlist -> playlist.id().equals(id));
 
         if (!exists) {
             logger.warn("Deletion unsuccessful: Playlist with ID {} does not exist!", id);

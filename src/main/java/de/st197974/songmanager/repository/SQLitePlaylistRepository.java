@@ -29,8 +29,7 @@ public class SQLitePlaylistRepository implements PlaylistRepository {
 
         String sql = "INSERT INTO playlist(id, name) VALUES (?,?)";
 
-        try (Connection conn = DriverManager.getConnection(URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DriverManager.getConnection(URL); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, playlist.id());
             pstmt.setString(2, playlist.name());
@@ -50,15 +49,10 @@ public class SQLitePlaylistRepository implements PlaylistRepository {
         List<Playlist> playlists = new ArrayList<>();
         String sql = "SELECT * FROM playlist";
 
-        try (Connection conn = DriverManager.getConnection(URL);
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conn = DriverManager.getConnection(URL); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                playlists.add(new Playlist(
-                        rs.getString("id"),
-                        rs.getString("name")
-                ));
+                playlists.add(new Playlist(rs.getString("id"), rs.getString("name")));
             }
 
         } catch (SQLException e) {
@@ -97,8 +91,7 @@ public class SQLitePlaylistRepository implements PlaylistRepository {
     public void addSongToPlaylist(String playlistId, String songId) {
         String sql = "INSERT OR IGNORE INTO playlist_song(playlist_id, song_id) VALUES(?, ?)";
 
-        try (Connection conn = DriverManager.getConnection(URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DriverManager.getConnection(URL); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, playlistId);
             pstmt.setString(2, songId);
@@ -115,8 +108,7 @@ public class SQLitePlaylistRepository implements PlaylistRepository {
     public void removeSongFromPlaylist(String playlistId, String songId) {
         String sql = "DELETE FROM playlist_song WHERE playlist_id = ? AND song_id = ?";
 
-        try (Connection conn = DriverManager.getConnection(URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DriverManager.getConnection(URL); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, playlistId);
             pstmt.setString(2, songId);
@@ -139,20 +131,13 @@ public class SQLitePlaylistRepository implements PlaylistRepository {
                 WHERE ps.playlist_id = ?
                 """;
 
-        try (Connection conn = DriverManager.getConnection(URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DriverManager.getConnection(URL); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, playlistId);
             ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {
-                songs.add(new Song(
-                        rs.getString("id"),
-                        rs.getString("title"),
-                        rs.getString("album"),
-                        rs.getString("artist"),
-                        rs.getInt("duration")
-                ));
+                songs.add(new Song(rs.getString("id"), rs.getString("title"), rs.getString("album"), rs.getString("artist"), rs.getInt("duration")));
             }
 
         } catch (SQLException e) {
@@ -166,8 +151,7 @@ public class SQLitePlaylistRepository implements PlaylistRepository {
     public void updatePlaylist(Playlist playlist) {
         String sql = "UPDATE playlist SET name = ? WHERE id = ?";
 
-        try (Connection conn = DriverManager.getConnection(URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DriverManager.getConnection(URL); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, playlist.name());
             pstmt.setString(2, playlist.id());
@@ -187,8 +171,7 @@ public class SQLitePlaylistRepository implements PlaylistRepository {
 
     public boolean isSongInPlaylist(String playlistId, String songId) {
         String sql = "SELECT COUNT (*) FROM playlist_song WHERE playlist_id = ? AND song_id = ?";
-        try (Connection conn = DriverManager.getConnection(URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DriverManager.getConnection(URL); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, playlistId);
             pstmt.setString(2, songId);
