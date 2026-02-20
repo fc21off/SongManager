@@ -23,6 +23,7 @@ import javax.swing.text.PlainDocument;
 import java.awt.*;
 import java.awt.event.*;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -84,8 +85,7 @@ public class SongManagerUI extends JFrame {
     private JTextField artistSearchField;
     private JToggleButton darkModeToggle;
 
-
-    private Path DESKTOP_PATH = Paths.get(System.getProperty("user.home"), "Desktop", "Discograph_Export.txt");
+    private Path DESKTOP_PATH = Paths.get(System.getProperty("user.home"), "Desktop", "MusicMaster_Export.txt");
 
     public SongManagerUI(DiscographyService discographyService, PlaylistService playlistService, FavoritesService favoritesService, StatsService statsService, ArtistService artistService) {
 
@@ -97,7 +97,7 @@ public class SongManagerUI extends JFrame {
         this.statsService = statsService;
         this.artistService = artistService;
 
-        setTitle("Discograph");
+        setTitle("Music Master");
         setSize(1200, 800);
         setMinimumSize(new Dimension(1070, 700));
         setMaximumSize(new Dimension(1920, 1080));
@@ -177,7 +177,12 @@ public class SongManagerUI extends JFrame {
         importButtonPanel.add(createSortButton("Import", _ -> importSongsFromFile()));
         importButtonPanel.add(createSortButton("Export", _ -> exportSongsToFile(DESKTOP_PATH)));
 
+        statusBar.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        statusBar.setBorder(new EmptyBorder(0, 60, 0, 0));
+        statusBar.setHorizontalAlignment(SwingConstants.CENTER);
+
         bottomUtilities.add(importButtonPanel, BorderLayout.WEST);
+        bottomUtilities.add(statusBar, BorderLayout.CENTER);
         bottomUtilities.add(sortActions, BorderLayout.EAST);
 
         mainContent.add(songHeader, BorderLayout.NORTH);
@@ -228,9 +233,6 @@ public class SongManagerUI extends JFrame {
         actionButtons.add(createSecondaryButton("Edit Song", _ -> editSelectedSong()));
         actionButtons.add(createSecondaryButton("Delete Song", _ -> deleteSelectedSong()));
 
-        statusBar.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        statusBar.setBorder(new EmptyBorder(0, 60, 0, 0));
-
         darkModeToggle = createThemeToggle();
 
         JPanel toggleContainer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 20, 12));
@@ -238,7 +240,7 @@ public class SongManagerUI extends JFrame {
         toggleContainer.add(darkModeToggle);
 
         footer.add(actionButtons, BorderLayout.WEST);
-        footer.add(statusBar, BorderLayout.CENTER);
+
         footer.add(toggleContainer, BorderLayout.EAST);
         add(footer, BorderLayout.SOUTH);
 
@@ -280,10 +282,7 @@ public class SongManagerUI extends JFrame {
         }
 
         for (JTextField field : styledTextFields) {
-            field.setBorder(BorderFactory.createCompoundBorder(
-                    new LineBorder(new Color(200, 200, 200), 1),
-                    new EmptyBorder(5, 12, 5, 12)
-            ));
+            field.setBorder(BorderFactory.createCompoundBorder(new LineBorder(new Color(200, 200, 200), 1), new EmptyBorder(5, 12, 5, 12)));
             field.setBackground(AppTheme.isDark() ? new Color(60, 63, 65) : new Color(238, 238, 240));
             field.setForeground(AppTheme.isDark() ? Color.WHITE : Color.BLACK);
             field.setCaretColor(AppTheme.isDark() ? Color.WHITE : Color.BLACK);
@@ -302,10 +301,7 @@ public class SongManagerUI extends JFrame {
             darkModeToggle.setForeground(toggleTextColor);
 
             Color toggleBorderColor = Color.GRAY;
-            darkModeToggle.setBorder(new CompoundBorder(
-                    new EmptyBorder(0, 0, 0, 0),
-                    BorderFactory.createLineBorder(toggleBorderColor, 1)
-            ));
+            darkModeToggle.setBorder(new CompoundBorder(new EmptyBorder(0, 0, 0, 0), BorderFactory.createLineBorder(toggleBorderColor, 1)));
         }
 
         this.repaint();
@@ -617,15 +613,28 @@ public class SongManagerUI extends JFrame {
 
     private void showSongInfo() {
         Song s;
-        if (tabbedPane != null && tabbedPane.getSelectedIndex() == 1) s = playlistPanel.getSelectedSong();
-        else if (tabbedPane != null && tabbedPane.getSelectedIndex() == 2) s = favoritesPanel.getSelectedFavorite();
+        if (tabbedPane != null && tabbedPane.getSelectedIndex() == 2) s = playlistPanel.getSelectedSong();
+        else if (tabbedPane != null && tabbedPane.getSelectedIndex() == 1) s = favoritesPanel.getSelectedFavorite();
         else s = songList.getSelectedValue();
 
         if (s == null || s == EMPTY_SONG_PLACEHOLDER) {
             JOptionPane.showMessageDialog(this, "Select a song first!");
             return;
         }
-        JOptionPane.showMessageDialog(this, "Title: " + s.title() + "\nArtist: " + s.artist() + "\nAlbum: " + s.album() + "\nDuration: " + s.formatTime(s.durationInSeconds()) + " (" + s.durationInSeconds() + "s)", "Song Info", JOptionPane.INFORMATION_MESSAGE);
+
+        String id = s.id();
+
+        JTextField idField = new JTextField(id);
+        idField.setEditable(false);
+        idField.setBorder(null);
+        idField.setBackground(AppTheme.isDark() ? new Color(60, 63, 65) : Color.WHITE);
+        idField.setForeground(AppTheme.isDark() ? Color.WHITE : Color.BLACK);
+        idField.setBackground(AppTheme.isDark() ? new Color(60, 63, 65) : Color.WHITE);
+
+        Object[] message = {"Title: " + s.title(), "Artist: " + s.artist(), "Album: " + s.album(), "Duration: " + s.formatTime(s.durationInSeconds()) + " (" + s.durationInSeconds() + "s)", "ID:", idField};
+
+        JOptionPane.showMessageDialog(this, message, "Song Info", JOptionPane.PLAIN_MESSAGE);
+
     }
 
     private void updateStatusBar(List<Song> songs, String artist) {
@@ -634,7 +643,18 @@ public class SongManagerUI extends JFrame {
         int sec = totalSeconds % 60;
 
         statusBar.setForeground(AppTheme.isDark() ? Color.LIGHT_GRAY : Color.BLACK);
-        statusBar.setText("Artist: " + artist + " | Songs: " + songs.size() + " | Time: " + min + ":" + String.format("%02d", sec));
+
+        boolean hasArtist = artist != null && !artist.equals("null") && !artist.isEmpty();
+
+        if (hasArtist) {
+            statusBar.setText(String.format("%s | %d Songs | Total Time: %d:%02d", artist, songs.size(), min, sec));
+        } else {
+            if (songs.isEmpty()) {
+                statusBar.setText("Library is empty. Start by adding or importing songs.");
+            } else {
+                statusBar.setText("Music Library | Total: " + songs.size() + " Songs | Select an artist to filter");
+            }
+        }
     }
 
     private void refreshSongList(List<Song> songs) {
@@ -966,10 +986,6 @@ public class SongManagerUI extends JFrame {
                 Song selectedSong = songList.getSelectedValue();
                 if (selectedSong == null || selectedSong == EMPTY_SONG_PLACEHOLDER) return;
 
-                JMenuItem addToPlaylist = new JMenuItem("Add to Playlist...");
-                addToPlaylist.addActionListener(_ -> showPlaylistSelectionDialog(selectedSong));
-                popupMenu.add(addToPlaylist);
-
                 if (favoritesService.isFavorite(selectedSong.id())) {
                     JMenuItem removeFromFavorites = new JMenuItem("Remove from Favorites");
                     removeFromFavorites.addActionListener(_ -> removeSongFromFavorites(selectedSong));
@@ -979,6 +995,11 @@ public class SongManagerUI extends JFrame {
                     addToFavorites.addActionListener(_ -> addSongToFavorites(selectedSong));
                     popupMenu.add(addToFavorites);
                 }
+
+                JMenuItem addToPlaylist = new JMenuItem("Add to Playlist...");
+                addToPlaylist.addActionListener(_ -> showPlaylistSelectionDialog(selectedSong));
+                popupMenu.add(addToPlaylist);
+
                 popupMenu.addSeparator();
 
                 JMenuItem showSongInfo = new JMenuItem("Show Info");
@@ -988,10 +1009,6 @@ public class SongManagerUI extends JFrame {
                 JMenuItem editSong = new JMenuItem("Edit Song");
                 editSong.addActionListener(_ -> editSelectedSong());
                 popupMenu.add(editSong);
-
-                JMenuItem deleteSong = new JMenuItem("Delete Song");
-                deleteSong.addActionListener(_ -> deleteSelectedSong());
-                popupMenu.add(deleteSong);
 
                 JMenuItem duplicateSong = new JMenuItem("Duplicate Song");
                 duplicateSong.addActionListener(_ -> duplicateSong(selectedSong));
@@ -1009,6 +1026,14 @@ public class SongManagerUI extends JFrame {
                     exportSongsToFile(DESKTOP_PATH);
                 });
                 popupMenu.add(exportOptionItem);
+
+                popupMenu.addSeparator();
+
+                JMenuItem deleteSong = new JMenuItem("Delete Song");
+                deleteSong.addActionListener(_ -> deleteSelectedSong());
+                popupMenu.add(deleteSong);
+
+
             }
 
             @Override
@@ -1063,11 +1088,7 @@ public class SongManagerUI extends JFrame {
                 JMenuItem editNameItem = new JMenuItem("Edit Artist Name");
                 editNameItem.addActionListener(_ -> {
 
-                    String newName = JOptionPane.showInputDialog(
-                            SongManagerUI.this,
-                            "Rename artist '" + thisArtist + "' to:",
-                            thisArtist
-                    );
+                    String newName = JOptionPane.showInputDialog(SongManagerUI.this, "Rename artist '" + thisArtist + "' to:", thisArtist);
 
                     if (newName != null && !newName.isBlank() && !newName.equals(thisArtist)) {
                         artistService.renameArtist(thisArtist, newName);
@@ -1076,23 +1097,6 @@ public class SongManagerUI extends JFrame {
                 });
                 popupMenu.add(editNameItem);
 
-                JMenuItem deleteItem = new JMenuItem("Delete Artist");
-                deleteItem.addActionListener(_ -> {
-                    int confirm = JOptionPane.showConfirmDialog(
-                            SongManagerUI.this,
-                            "Delete artist '" + thisArtist + "' and all associated songs?",
-                            "Confirm Delete",
-                            JOptionPane.YES_NO_OPTION,
-                            JOptionPane.WARNING_MESSAGE
-                    );
-
-                    if (confirm == JOptionPane.YES_OPTION) {
-                        artistService.deleteArtist(thisArtist);
-                        loadArtists(null);
-                        loadSongs(null);
-                    }
-                });
-                popupMenu.add(deleteItem);
 
                 popupMenu.addSeparator();
 
@@ -1105,6 +1109,20 @@ public class SongManagerUI extends JFrame {
                 JMenuItem exportOptionItem = new JMenuItem("Export to File");
                 exportOptionItem.addActionListener(_ -> exportSongsToFile(DESKTOP_PATH));
                 popupMenu.add(exportOptionItem);
+
+                popupMenu.addSeparator();
+
+                JMenuItem deleteItem = new JMenuItem("Delete Artist");
+                deleteItem.addActionListener(_ -> {
+                    int confirm = JOptionPane.showConfirmDialog(SongManagerUI.this, "Delete artist '" + thisArtist + "' and all associated songs?", "Confirm Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+
+                    if (confirm == JOptionPane.YES_OPTION) {
+                        artistService.deleteArtist(thisArtist);
+                        loadArtists(null);
+                        loadSongs(null);
+                    }
+                });
+                popupMenu.add(deleteItem);
             }
 
             @Override
@@ -1190,12 +1208,10 @@ public class SongManagerUI extends JFrame {
         String file = dialog.getFile();
         if (file == null) return;
 
-        java.io.File selectedFile =
-                new java.io.File(dialog.getDirectory(), file);
+        java.io.File selectedFile = new java.io.File(dialog.getDirectory(), file);
 
         try {
-            List<String> lines =
-                    java.nio.file.Files.readAllLines(selectedFile.toPath());
+            List<String> lines = Files.readAllLines(selectedFile.toPath());
 
             int count = discographyService.importSongsFromLines(lines);
 
@@ -1203,21 +1219,12 @@ public class SongManagerUI extends JFrame {
             loadSongs(artistList.getSelectedValue());
 
 
-            JOptionPane.showMessageDialog(
-                    this,
-                    count + " Songs imported successfully!"
-            );
+            JOptionPane.showMessageDialog(this, count + " Songs imported successfully!");
 
-            logger.info("Imported {} songs from file: {}",
-                    count, selectedFile.getName());
+            logger.info("Imported {} songs from file: {}", count, selectedFile.getName());
 
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Error reading file: " + e.getMessage(),
-                    "Import Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
+            JOptionPane.showMessageDialog(this, "Error reading file: " + e.getMessage(), "Import Error", JOptionPane.ERROR_MESSAGE);
 
             logger.error("Import failed", e);
         }
@@ -1226,7 +1233,6 @@ public class SongManagerUI extends JFrame {
 
     public void exportSongsToFile(Path path) {
         ExportStatus success = discographyService.saveExportToFile(path.toString());
-
 
         switch (success) {
             case SUCCESS -> {
@@ -1246,6 +1252,5 @@ public class SongManagerUI extends JFrame {
             }
         }
     }
-
 
 }

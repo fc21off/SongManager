@@ -419,7 +419,8 @@ public class MultiEditPanel extends JPanel {
         if (confirm == JOptionPane.YES_OPTION) {
             for (int row : selectedRows) {
 
-                boolean isFav = favoritesService.isFavorite((String) tableModel.getValueAt(songTable.convertRowIndexToModel(row), 0));
+                Song currentSong = discographyService.getSongById((String) tableModel.getValueAt(songTable.convertRowIndexToModel(row), 0));
+                boolean isFav = favoritesService.isFavorite(currentSong.id());
 
                 if(isFav) {
                     favoritesService.removeFavorite((String) tableModel.getValueAt(songTable.convertRowIndexToModel(row), 0));
